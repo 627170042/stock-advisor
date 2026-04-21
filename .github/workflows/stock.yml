@@ -1,0 +1,67 @@
+name: A股T+1选股系统
+
+on:
+  # 每个交易日14:25(北京) = 06:25(UTC) 推荐
+  schedule:
+    - cron: '25 6 * * 1-5'  # 推荐
+    - cron: '35 1 * * 1-5'  # 复盘 (09:35北京)
+  # 允许手动触发
+  workflow_dispatch:
+    inputs:
+      task:
+        description: '执行任务: recommend 或 review'
+        required: true
+        default: 'recommend'
+
+jobs:
+  recommend:
+    if: github.event_name == 'schedule' && github.event.schedule == '25 6 * * 1-5' || github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'recommend'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Restore data
+        run: bash scripts/restore_data.sh
+      
+      - name: Run recommendation
+        env:
+          WECHAT_WEBHOOK_URL: ${{ secrets.WECHAT_WEBHOOK_URL }}
+          DATA_DIR: ./data
+        run: python main.py
+      
+      - name: Save data
+        run: bash scripts/save_data.sh
+
+  review:
+    if: github.event_name == 'schedule' && github.event.schedule == '35 1 * * 1-5' || github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'review'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Restore data
+        run: bash scripts/restore_data.sh
+      
+      - name: Run review
+        env:
+          WECHAT_WEBHOOK_URL: ${{ secrets.WECHAT_WEBHOOK_URL }}
+          DATA_DIR: ./data
+        run: python review.py
+      
+      - name: Save data
+        run: bash scripts/save_data.sh
