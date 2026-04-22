@@ -1,24 +1,31 @@
 name: A股T+1选股系统
 
 on:
-  # 每个交易日14:25(北京) = 06:25(UTC) 推荐
   schedule:
-    - cron: '25 6 * * 1-5'  # 推荐
-    - cron: '35 1 * * 1-5'  # 复盘 (09:35北京)
-  # 允许手动触发
+    - cron: '25 6 * * 1-5'   # 推荐 14:25北京
+    - cron: '30 6 * * 1-5'   # 推荐 14:30北京(备用)
+    - cron: '35 1 * * 1-5'   # 复盘 09:35北京
+    - cron: '40 1 * * 1-5'   # 复盘 09:40北京(备用)
   workflow_dispatch:
     inputs:
       task:
-        description: '执行任务: recommend 或 review'
+        description: 'recommend 或 review'
         required: true
         default: 'recommend'
 
 jobs:
   recommend:
-    if: github.event_name == 'schedule' && github.event.schedule == '25 6 * * 1-5' || github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'recommend'
+    if: >
+      (github.event_name == 'schedule' && (github.event.schedule == '25 6 * * 1-5' || github.event.schedule == '30 6 * * 1-5'))
+      || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'recommend')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,7 +36,15 @@ jobs:
         run: pip install -r requirements.txt
       
       - name: Restore data
-        run: bash scripts/restore_data.sh
+        run: |
+          git fetch origin data 2>/dev/null || true
+          if git branch -r | grep -q "origin/data"; then
+            git checkout origin/data -- data/ 2>/dev/null || true
+            echo "Data restored from data branch"
+          else
+            mkdir -p data/history data/reports data/config
+            echo "No existing data, starting fresh"
+          fi
       
       - name: Run recommendation
         env:
@@ -38,13 +53,30 @@ jobs:
         run: python main.py
       
       - name: Save data
-        run: bash scripts/save_data.sh
+        run: |
+          git config user.name "Stock Bot"
+          git config user.email "627170042@qq.com"
+          git add data/ 2>/dev/null || true
+          if ! git diff --staged --quiet; then
+            git commit -m "Update stock data - $(date +%Y-%m-%d)"
+            git push origin HEAD:data 2>/dev/null || true
+            echo "Data saved"
+          else
+            echo "No data changes"
+          fi
 
   review:
-    if: github.event_name == 'schedule' && github.event.schedule == '35 1 * * 1-5' || github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'review'
+    if: >
+      (github.event_name == 'schedule' && (github.event.schedule == '35 1 * * 1-5' || github.event.schedule == '40 1 * * 1-5'))
+      || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'review')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -55,7 +87,15 @@ jobs:
         run: pip install -r requirements.txt
       
       - name: Restore data
-        run: bash scripts/restore_data.sh
+        run: |
+          git fetch origin data 2>/dev/null || true
+          if git branch -r | grep -q "origin/data"; then
+            git checkout origin/data -- data/ 2>/dev/null || true
+            echo "Data restored from data branch"
+          else
+            mkdir -p data/history data/reports data/config
+            echo "No existing data, starting fresh"
+          fi
       
       - name: Run review
         env:
@@ -64,4 +104,14 @@ jobs:
         run: python review.py
       
       - name: Save data
-        run: bash scripts/save_data.sh
+        run: |
+          git config user.name "Stock Bot"
+          git config user.email "627170042@qq.com"
+          git add data/ 2>/dev/null || true
+          if ! git diff --staged --quiet; then
+            git commit -m "Update review data - $(date +%Y-%m-%d)"
+            git push origin HEAD:data 2>/dev/null || true
+            echo "Data saved"
+          else
+            echo "No data changes"
+          fi
