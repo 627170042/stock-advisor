@@ -1,63 +1,90 @@
 name: 守护调度器
 
-# 这个workflow在交易时间段内持续运行，每分钟检查时间，精确定时触发推荐/复盘
-# 解决GitHub Actions scheduled延迟不可控的问题
+# 在交易时间段持续运行，每分钟检查时间，精确触发推荐/复盘
+# 解决GitHub Actions scheduled延迟问题
+# 多个cron时间增加启动概率
 
 on:
   schedule:
-    - cron: '0 6 * * 1-5'    # 14:00北京开始
-    - cron: '0 1 * * 1-5'    # 09:00北京开始
+    - cron: '0 6 * * 1-5'     # 14:00北京
+    - cron: '30 5 * * 1-5'    # 13:30北京
+    - cron: '0 1 * * 1-5'     # 09:00北京
+    - cron: '30 0 * * 1-5'    # 08:30北京
   workflow_dispatch:
 
 jobs:
   scheduler:
     runs-on: ubuntu-latest
-    timeout-minutes: 90  # 最多运行90分钟
+    timeout-minutes: 120
     permissions:
       actions: write
     steps:
       - name: Schedule and trigger
         run: |
-          echo "守护调度器启动"
+          echo "守护调度器启动 - $(TZ=Asia/Shanghai date)"
           
-          # 循环检查时间，精确触发
-          for i in $(seq 1 90); do
+          RECOMMEND_DONE="/tmp/recommend_done"
+          REVIEW_DONE="/tmp/review_done"
+          
+          for i in $(seq 1 120); do
             BJ_HOUR=$(TZ=Asia/Shanghai date +%H)
             BJ_MIN=$(TZ=Asia/Shanghai date +%M)
             BJ_MINUTES=$((10#$BJ_HOUR * 60 + 10#$BJ_MIN))
             BJ_TIME="${BJ_HOUR}:${BJ_MIN}"
             
-            echo "[${BJ_TIME}] 检查..."
+            echo "[${BJ_TIME}] 检查... (第${i}次)"
             
-            # 推荐: 14:25
-            if [ "$BJ_MINUTES" -eq 865 ]; then
-              echo "⏰ 14:25 触发推荐!"
-              curl -s -X POST \
+            # 推荐: 14:25 (865分钟)
+            if [ "$BJ_MINUTES" -ge 865 ] && [ ! -f "$RECOMMEND_DONE" ]; then
+              echo "触发推荐!"
+              RESP=$(curl -s -w "\n%{http_code}" -X POST \
                 -H "Authorization: token ${{ secrets.GH_PAT }}" \
                 -H "Accept: application/vnd.github.v3+json" \
                 "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-                -d '{"event_type":"recommend"}'
-              echo "推荐已触发"
+                -d '{"event_type":"recommend"}')
+              HTTP_CODE=$(echo "$RESP" | tail -1)
+              echo "推荐触发结果: HTTP $HTTP_CODE"
+              if [ "$HTTP_CODE" = "204" ]; then
+                touch "$RECOMMEND_DONE"
+                echo "推荐触发成功"
+              fi
             fi
             
-            # 复盘: 09:35
-            if [ "$BJ_MINUTES" -eq 575 ]; then
-              echo "⏰ 09:35 触发复盘!"
-              curl -s -X POST \
+            # 复盘: 09:35 (575分钟)
+            if [ "$BJ_MINUTES" -ge 575 ] && [ ! -f "$REVIEW_DONE" ]; then
+              echo "触发复盘!"
+              RESP=$(curl -s -w "\n%{http_code}" -X POST \
                 -H "Authorization: token ${{ secrets.GH_PAT }}" \
                 -H "Accept: application/vnd.github.v3+json" \
                 "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-                -d '{"event_type":"review"}'
-              echo "复盘已触发"
+                -d '{"event_type":"review"}')
+              HTTP_CODE=$(echo "$RESP" | tail -1)
+              echo "复盘触发结果: HTTP $HTTP_CODE"
+              if [ "$HTTP_CODE" = "204" ]; then
+                touch "$REVIEW_DONE"
+                echo "复盘触发成功"
+              fi
             fi
             
-            # 如果已经过了15:00或10:00，可以退出
-            if [ "$BJ_MINUTES" -gt 900 ] || ([ "$BJ_HOUR" -ge 10 ] && [ "$BJ_MINUTES" -lt 860 ]); then
-              echo "交易时间已过，退出"
+            # 两个任务都完成，或者过了15:00，退出
+            if [ -f "$RECOMMEND_DONE" ] && [ -f "$REVIEW_DONE" ]; then
+              echo "所有任务完成，退出"
               break
             fi
             
-            sleep 60
+            if [ "$BJ_MINUTES" -gt 900 ]; then
+              echo "已过15:00，退出"
+              break
+            fi
+            
+            # 如果在09:00-09:35之间且复盘已完成，但在14:00之前，继续等待
+            if [ "$BJ_MINUTES" -gt 600 ] && [ "$BJ_MINUTES" -lt 860 ]; then
+              # 等到13:50再开始检查推荐
+              sleep 300  # 等5分钟
+              continue
+            fi
+            
+            sleep 55
           done
           
-          echo "守护调度器结束"
+          echo "守护调度器结束 - $(TZ=Asia/Shanghai date)"
