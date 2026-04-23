@@ -2,10 +2,9 @@ name: A股T+1选股系统
 
 on:
   schedule:
-    - cron: '25 6 * * 1-5'   # 推荐 14:25北京
-    - cron: '30 6 * * 1-5'   # 推荐 14:30北京(备用)
-    - cron: '35 1 * * 1-5'   # 复盘 09:35北京
-    - cron: '40 1 * * 1-5'   # 复盘 09:40北京(备用)
+    # GitHub scheduled可能有延迟，但作为备用
+    - cron: '20 6 * * 1-5'   # 推荐 ~14:20北京
+    - cron: '30 1 * * 1-5'   # 复盘 ~09:30北京
   workflow_dispatch:
     inputs:
       task:
@@ -16,9 +15,10 @@ on:
     types: [recommend, review]
 
 jobs:
+  # 主推荐任务
   recommend:
     if: >
-      (github.event_name == 'schedule' && (github.event.schedule == '25 6 * * 1-5' || github.event.schedule == '30 6 * * 1-5'))
+      (github.event_name == 'schedule' && github.event.schedule == '20 6 * * 1-5')
       || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'recommend')
       || (github.event_name == 'repository_dispatch' && github.event.action == 'recommend')
     runs-on: ubuntu-latest
@@ -43,10 +43,8 @@ jobs:
           git fetch origin data 2>/dev/null || true
           if git branch -r | grep -q "origin/data"; then
             git checkout origin/data -- data/ 2>/dev/null || true
-            echo "Data restored from data branch"
           else
             mkdir -p data/history data/reports data/config
-            echo "No existing data, starting fresh"
           fi
       
       - name: Run recommendation
@@ -63,14 +61,12 @@ jobs:
           if ! git diff --staged --quiet; then
             git commit -m "Update stock data - $(date +%Y-%m-%d)"
             git push origin HEAD:data 2>/dev/null || true
-            echo "Data saved"
-          else
-            echo "No data changes"
           fi
 
+  # 复盘任务
   review:
     if: >
-      (github.event_name == 'schedule' && (github.event.schedule == '35 1 * * 1-5' || github.event.schedule == '40 1 * * 1-5'))
+      (github.event_name == 'schedule' && github.event.schedule == '30 1 * * 1-5')
       || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'review')
       || (github.event_name == 'repository_dispatch' && github.event.action == 'review')
     runs-on: ubuntu-latest
@@ -95,10 +91,8 @@ jobs:
           git fetch origin data 2>/dev/null || true
           if git branch -r | grep -q "origin/data"; then
             git checkout origin/data -- data/ 2>/dev/null || true
-            echo "Data restored from data branch"
           else
             mkdir -p data/history data/reports data/config
-            echo "No existing data, starting fresh"
           fi
       
       - name: Run review
@@ -115,15 +109,4 @@ jobs:
           if ! git diff --staged --quiet; then
             git commit -m "Update review data - $(date +%Y-%m-%d)"
             git push origin HEAD:data 2>/dev/null || true
-            echo "Data saved"
-          else
-            echo "No data changes"
           fi
-  
-  # 保持仓库活跃，防止GitHub禁用scheduled workflow
-  keepalive:
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: echo "Keep alive - $(date)"
