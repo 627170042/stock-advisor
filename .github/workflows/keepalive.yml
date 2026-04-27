@@ -1,0 +1,40 @@
+name: Keep Alive
+
+# 防止GitHub暂停scheduled workflow
+# 每天定时执行一次空操作，保持仓库活跃
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # 每天UTC 00:00
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Keep alive
+        run: |
+          echo "Keep alive - $(date)"
+          
+      - name: Trigger today's jobs if needed
+        run: |
+          BJ_DOW=$(TZ=Asia/Shanghai date +%u)
+          BJ_HOUR=$(TZ=Asia/Shanghai date +%H)
+          
+          # 仅在工作日触发
+          if [ "$BJ_DOW" -le 5 ]; then
+            # 触发守护调度器（它会精确在14:25和09:35触发推荐/复盘）
+            curl -s -X POST \
+              -H "Authorization: token ${{ secrets.GH_PAT }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/scheduler.yml/dispatches" \
+              -d '{"ref":"main"}'
+            echo "守护调度器已触发"
+          else
+            echo "今天非交易日，跳过"
+          fi
