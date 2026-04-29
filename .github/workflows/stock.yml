@@ -1,26 +1,22 @@
 name: A股T+1选股系统
 
 on:
-  schedule:
-    # GitHub scheduled可能有延迟，但作为备用
-    - cron: '20 6 * * 1-5'   # 推荐 ~14:20北京
-    - cron: '30 1 * * 1-5'   # 复盘 ~09:30北京
+  # 只用repository_dispatch触发，不用scheduled
+  # 外部触发由cron-job.org或sandbox cron负责
+  repository_dispatch:
+    types: [recommend, review, check]
   workflow_dispatch:
     inputs:
       task:
-        description: 'recommend 或 review'
+        description: 'recommend / review / check'
         required: true
-        default: 'recommend'
-  repository_dispatch:
-    types: [recommend, review]
+        default: 'check'
 
 jobs:
-  # 主推荐任务
   recommend:
     if: >
-      (github.event_name == 'schedule' && github.event.schedule == '20 6 * * 1-5')
+      github.event_name == 'repository_dispatch' && github.event.action == 'recommend'
       || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'recommend')
-      || (github.event_name == 'repository_dispatch' && github.event.action == 'recommend')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -29,15 +25,12 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
       - name: Install dependencies
         run: pip install -r requirements.txt
-      
       - name: Restore data
         run: |
           git fetch origin data 2>/dev/null || true
@@ -46,29 +39,25 @@ jobs:
           else
             mkdir -p data/history data/reports data/config
           fi
-      
       - name: Run recommendation
         env:
           WECHAT_WEBHOOK_URL: ${{ secrets.WECHAT_WEBHOOK_URL }}
           DATA_DIR: ./data
         run: python main.py
-      
       - name: Save data
         run: |
           git config user.name "Stock Bot"
           git config user.email "627170042@qq.com"
           git add data/ 2>/dev/null || true
           if ! git diff --staged --quiet; then
-            git commit -m "Update stock data - $(date +%Y-%m-%d)"
+            git commit -m "recommend $(date +%Y-%m-%d)"
             git push origin HEAD:data 2>/dev/null || true
           fi
 
-  # 复盘任务
   review:
     if: >
-      (github.event_name == 'schedule' && github.event.schedule == '30 1 * * 1-5')
+      github.event_name == 'repository_dispatch' && github.event.action == 'review'
       || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'review')
-      || (github.event_name == 'repository_dispatch' && github.event.action == 'review')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -77,15 +66,12 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
       - name: Install dependencies
         run: pip install -r requirements.txt
-      
       - name: Restore data
         run: |
           git fetch origin data 2>/dev/null || true
@@ -94,19 +80,106 @@ jobs:
           else
             mkdir -p data/history data/reports data/config
           fi
-      
       - name: Run review
         env:
           WECHAT_WEBHOOK_URL: ${{ secrets.WECHAT_WEBHOOK_URL }}
           DATA_DIR: ./data
         run: python review.py
-      
       - name: Save data
         run: |
           git config user.name "Stock Bot"
           git config user.email "627170042@qq.com"
           git add data/ 2>/dev/null || true
           if ! git diff --staged --quiet; then
-            git commit -m "Update review data - $(date +%Y-%m-%d)"
+            git commit -m "review $(date +%Y-%m-%d)"
             git push origin HEAD:data 2>/dev/null || true
           fi
+
+  check:
+    if: >
+      github.event_name == 'repository_dispatch' && github.event.action == 'check'
+      || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'check')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      recommend_needed: ${{ steps.check.outputs.recommend_needed }}
+      review_needed: ${{ steps.check.outputs.review_needed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check status
+        id: check
+        env:
+          DATA_DIR: ./data
+        run: |
+          git fetch origin data 2>/dev/null || true
+          if git branch -r | grep -q "origin/data"; then
+            git checkout origin/data -- data/ 2>/dev/null || true
+          else
+            mkdir -p data/history data/reports data/config
+          fi
+          
+          python -c "
+          import json, os
+          from datetime import datetime, timedelta
+          
+          now = datetime.utcnow() + timedelta(hours=8)
+          today = now.strftime('%Y-%m-%d')
+          minutes = now.hour * 60 + now.minute
+          
+          recommend_needed = 'false'
+          review_needed = 'false'
+          
+          # 检查推荐
+          if minutes >= 865:  # 14:25
+              try:
+                  with open('data/reports/latest.json') as f:
+                      d = json.load(f)
+                  if d.get('date') != today:
+                      recommend_needed = 'true'
+              except:
+                  recommend_needed = 'true'
+          
+          # 检查复盘
+          if minutes >= 575:  # 09:35
+              try:
+                  with open('data/history/recommendations.json') as f:
+                      data = json.load(f)
+                  pending = [r for r in data if r.get('result') is None and r['date'] < today]
+                  if len(pending) > 0:
+                      review_needed = 'true'
+              except:
+                  pass
+          
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'recommend_needed={recommend_needed}\n')
+              f.write(f'review_needed={review_needed}\n')
+          print(f'recommend_needed={recommend_needed}, review_needed={review_needed}')
+          "
+      
+      - name: Trigger recommend if needed
+        if: steps.check.outputs.recommend_needed == 'true'
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GH_PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+            -d '{"event_type":"recommend"}'
+          echo "recommend triggered"
+      
+      - name: Trigger review if needed
+        if: steps.check.outputs.review_needed == 'true'
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GH_PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+            -d '{"event_type":"review"}'
+          echo "review triggered"
