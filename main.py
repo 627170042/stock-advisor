@@ -93,13 +93,13 @@ def run_daily_recommendation():
     optimizer = StrategyOptimizer()
     today = datetime.now().strftime('%Y-%m-%d')
     
-    # 先执行复盘
-    print("步骤1: 复盘前日推荐...")
-    from review import review_previous_recommendations
-    review_previous_recommendations()
+    # 不在推荐中执行复盘，复盘由独立的review任务负责
+    # print("步骤1: 复盘前日推荐...")
+    # from review import review_previous_recommendations
+    # review_previous_recommendations()
     
     # 执行筛选
-    print("\n步骤2: 筛选今日推荐...")
+    print("\n步骤1: 筛选今日推荐...")
     from data_fetcher import get_top_gainers, get_top_volume
     print("  预加载市场数据...")
     gainers = get_top_gainers(80)
