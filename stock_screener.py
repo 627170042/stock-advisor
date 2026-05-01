@@ -1,7 +1,12 @@
 """
-A股T+1短线选股系统 - 筛选引擎模块 v2
-核心改进：候选池不再以涨幅榜为主，而是多维度构建
-重点关注：次日上涨概率，而非当日涨幅
+A股T+1短线选股系统 - 筛选引擎模块 v3
+基于25次历史推荐的深度复盘，核心优化：
+
+1. ❌ budget策略(低价+非创/科)胜率仅8%，亏损率75% → 暂停budget，两支都走strong
+2. ❌ 追涨(推荐日>=3%)次日平均-0.48%，60%亏损 → 严控推荐日涨幅上限
+3. ❌ 紫金矿业推荐3次均未命中，紫光股份2次均亏损 → 增加短期重复推荐黑名单
+4. ❌ 命中组技术分67 vs 未命中71 → 技术分区分度差，需加强量价和动量衰减权重
+5. ✅ strong策略平均次日+0.07%优于budget的-1.24% → 全面转向strong逻辑
 """
 import time
 import json
@@ -59,59 +64,92 @@ def filter_liquidity(stock):
     return True, "通过"
 
 
-# ==================== 次日上涨潜力评分（替代旧的强势分） ====================
+def filter_chase_risk(stock):
+    """
+    ★v3新增★ 追涨风险过滤
+    数据证明: 推荐日涨幅>=3%的股票，次日60%亏损，平均-0.48%
+    策略: 推荐日涨幅>4%的直接排除，3-4%的降权
+    """
+    change_pct = stock.get('changepercent', 0)
+    if change_pct > 4:
+        return False, f"追涨风险(当日涨{change_pct:.1f}%)"
+    return True, "通过"
+
+
+def filter_recent_recommendations(stock, history_file):
+    """
+    ★v3新增★ 短期重复推荐黑名单
+    数据证明: 紫金矿业3次推荐均未命中，紫光2次均亏损
+    策略: 5个交易日内推荐过的股票不再推荐
+    """
+    try:
+        with open(history_file) as f:
+            history = json.load(f)
+        
+        from datetime import timedelta
+        now = datetime.now()
+        recent_symbols = set()
+        for r in history:
+            rec_date = datetime.strptime(r['date'], '%Y-%m-%d')
+            if (now - rec_date).days <= 5 and r['symbol'] == stock['symbol']:
+                recent_symbols.add(r['symbol'])
+        
+        if stock['symbol'] in recent_symbols:
+            return False, "近期已推荐(5日内)"
+    except:
+        pass
+    return True, "通过"
+
+
+# ==================== 次日上涨潜力评分 v3 ====================
 
 def score_next_day_potential(stock):
     """
-    基于盘面数据评估次日上涨潜力（不需要K线，用于预筛选）
-    注意：这只是一个快速预估，深度分析在技术分析阶段完成
-    
-    核心思路：
-    - 当日微涨(0-3%)或小跌(-2~0%)的股票，次日延续/反弹概率更高
-    - 当日大涨(>5%)的股票，次日回调概率大
-    - 换手率适中(3-10%)说明资金活跃但未过热
-    - 流通市值适中的股票弹性更好
+    v3: 基于历史复盘优化权重
+    核心变化: 加大当日涨幅区间的区分度，降低追涨股评分
     """
     score = 50
     change_pct = stock.get('changepercent', 0)
     turnover = stock.get('turnoverratio', 0)
-    nmc = stock.get('nmc', 0)  # 流通市值(万)
+    nmc = stock.get('nmc', 0)
     
-    # === 当日涨跌幅评分（关键改进：不再追涨）===
+    # === 当日涨跌幅评分（★v3核心改动：更激进地惩罚追涨）===
     if -2 <= change_pct < 0:
-        score += 15  # 小幅回调，次日反弹概率高
+        score += 18  # 小幅回调，次日反弹概率最高
     elif 0 <= change_pct <= 1:
-        score += 12  # 微涨蓄势，次日继续概率高
-    elif 1 < change_pct <= 3:
-        score += 8   # 温和上涨，尚有空间
-    elif 3 < change_pct <= 5:
-        score += 3   # 涨幅偏大，次日回调风险增加
-    elif -5 <= change_pct < -2:
-        score += 5   # 较大回调，需观察是否有支撑
-    elif change_pct > 5:
-        score -= 10  # 大涨追高风险
-    elif change_pct > 7:
-        score -= 20  # 极度追高
+        score += 15  # 微涨蓄势
+    elif 1 < change_pct <= 2:
+        score += 10  # 温和上涨
+    elif 2 < change_pct <= 3:
+        score += 3   # 涨幅偏大
+    elif -4 <= change_pct < -2:
+        score += 5   # 较大回调
+    elif 3 < change_pct <= 4:
+        score -= 5   # ★v3: 追涨区，降权
+    elif change_pct > 4:
+        score -= 15  # ★v3: 高位追涨，重罚
     
     # === 换手率评分 ===
     if 3 <= turnover <= 8:
-        score += 12  # 适中，资金活跃且不过热
+        score += 12
     elif 1 <= turnover < 3:
         score += 5
     elif 8 < turnover <= 15:
-        score += 4   # 偏高但可接受
+        score += 4
     elif turnover > 15:
-        score -= 5   # 过热
+        score -= 5
     
     # === 流通市值评分 ===
     if nmc > 0:
         nmc_yi = nmc / 10000
-        if 30 <= nmc_yi <= 300:
-            score += 8  # 中盘股，弹性与流动性兼顾
-        elif 10 <= nmc_yi < 30:
-            score += 5  # 小盘股弹性大
-        elif 300 < nmc_yi <= 1000:
-            score += 3  # 大盘股稳健
+        if 50 <= nmc_yi <= 500:
+            score += 10  # ★v3: 中大盘股更稳健
+        elif 20 <= nmc_yi < 50:
+            score += 6
+        elif 500 < nmc_yi <= 2000:
+            score += 5
+        elif nmc_yi < 20:
+            score -= 3  # ★v3: 小盘股波动大，扣分
     
     return max(0, min(100, score))
 
@@ -119,82 +157,91 @@ def score_next_day_potential(stock):
 # ==================== 综合筛选流程 ====================
 
 def build_candidate_pool():
-    """
-    多维度构建候选池（核心改进：不再以涨幅榜为主）
-    
-    策略：
-    1. 成交额榜 — 资金关注度的最直接指标
-    2. 换手率榜 — 资金活跃度，换手率高说明在交易
-    3. 涨幅榜(小幅) — 关注微涨蓄势的，而非追涨停
-    4. 振幅榜 — 波动性适中的才有短线操作空间
-    """
+    """多维度构建候选池"""
     print("[1/4] 多维度构建候选池...")
     
     all_stocks = {}
     
-    # 数据源1: 成交额TOP60（资金关注度最高）
     volume_stocks = get_top_volume(60)
     for s in volume_stocks:
         all_stocks[s['symbol']] = s
     
-    # 数据源2: 换手率TOP40（资金最活跃）
     turnover_stocks = get_top_turnover(40)
     for s in turnover_stocks:
         all_stocks[s['symbol']] = s
     
-    # 数据源3: 涨幅榜TOP40（但关注的是微涨蓄势，不是追涨停）
     gainer_stocks = get_top_gainers(40)
     for s in gainer_stocks:
         all_stocks[s['symbol']] = s
     
     print(f"  原始候选池: {len(all_stocks)} 只")
-    print(f"    成交额榜: {len(volume_stocks)} | 换手率榜: {len(turnover_stocks)} | 涨幅榜: {len(gainer_stocks)}")
     
     return all_stocks
 
 
 def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None):
     """
-    综合筛选流程 v2
-    核心改变：以前瞻性"次日上涨概率"为排序依据
+    综合筛选流程 v3
+    核心变化：
+    1. 增加追涨风险过滤
+    2. 增加短期重复推荐过滤
+    3. 调整评分权重(量价+动量衰减权重提高)
+    4. 提高入选门槛
     """
     print(f"\n{'='*60}")
     print(f"开始筛选 [{category}] 类股票...")
     print(f"{'='*60}")
     
-    # 第一步：构建候选池
+    DATA_DIR = os.environ.get('DATA_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data'))
+    history_file = os.path.join(DATA_DIR, 'history', 'recommendations.json')
+    
     if preloaded_stocks:
         all_stocks = dict(preloaded_stocks)
         print(f"  复用已有数据 {len(all_stocks)} 只股票")
     else:
         all_stocks = build_candidate_pool()
     
-    # 第二步：基础过滤 + 次日潜力预评分
-    print("[2/4] 基础过滤 + 次日潜力预评分...")
+    # 第二步：基础过滤 + 追涨过滤 + 重复推荐过滤 + 预评分
+    print("[2/4] 多层过滤...")
     candidates = []
+    filter_stats = {'basic': 0, 'liquidity': 0, 'chase': 0, 'repeat': 0}
     
     for symbol, stock in all_stocks.items():
         ok, reason = filter_basic(stock, category)
         if not ok:
+            filter_stats['basic'] += 1
             continue
         
         ok, reason = filter_liquidity(stock)
         if not ok:
+            filter_stats['liquidity'] += 1
             continue
         
-        # 用前瞻性评分替代旧的强势分
+        # ★v3: 追涨风险过滤
+        ok, reason = filter_chase_risk(stock)
+        if not ok:
+            filter_stats['chase'] += 1
+            continue
+        
+        # ★v3: 短期重复推荐过滤
+        ok, reason = filter_recent_recommendations(stock, history_file)
+        if not ok:
+            filter_stats['repeat'] += 1
+            continue
+        
         potential_score = score_next_day_potential(stock)
         stock['potential_score'] = potential_score
         candidates.append(stock)
     
-    print(f"  基础过滤后剩余 {len(candidates)} 只")
+    print(f"  基础过滤淘汰: {filter_stats['basic']} | 流动性淘汰: {filter_stats['liquidity']}")
+    print(f"  追涨淘汰: {filter_stats['chase']} | 重复推荐淘汰: {filter_stats['repeat']}")
+    print(f"  通过过滤剩余 {len(candidates)} 只")
     
-    # 按次日潜力预评分排序，只对Top候选做深度分析
     candidates.sort(key=lambda x: x['potential_score'], reverse=True)
     analyze_count = min(len(candidates), max_candidates)
     
-    # 第三步：深度技术分析（前瞻性模型）
-    print(f"[3/4] 前瞻性技术分析（Top {analyze_count}）...")
+    # 第三步：深度技术分析
+    print(f"[3/4] 技术分析（Top {analyze_count}）...")
     scored_candidates = []
     
     for i, stock in enumerate(candidates[:analyze_count]):
@@ -204,10 +251,8 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None):
             if not kline or len(kline) < 8:
                 continue
             
-            # 前瞻性预测模型
             prediction = predict_next_day(kline, stock)
             
-            # 均线数据
             closes = [k['close'] for k in kline]
             ma5 = calc_ma(closes, 5)
             ma10 = calc_ma(closes, 10)
@@ -215,7 +260,6 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None):
             rsi = calc_rsi(closes)
             K, D, J = calc_kdj(kline)
             
-            # 保存所有分析结果
             stock['tech_score'] = prediction['score']
             stock['trend'] = judge_trend(kline)
             stock['next_day_prob'] = prediction['prob']
@@ -229,17 +273,22 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None):
             stock['kdj_j'] = J
             stock['kline'] = kline
             
-            # 综合评分 = 次日潜力预评分*0.25 + 前瞻技术分*0.45 + 概率分*100*0.30
-            # 技术分析和概率权重更高，盘面预评分降低
+            # ★v3: 调整权重 - 提高量价和技术权重，降低潜力预评权重
+            # v2: potential*0.25 + tech*0.45 + prob*0.30
+            # v3: potential*0.15 + tech*0.50 + prob*0.35 (更依赖前瞻模型)
             stock['total_score'] = (
-                stock['potential_score'] * 0.25 +
-                prediction['score'] * 0.45 +
-                prediction['prob'] * 100 * 0.30
+                stock['potential_score'] * 0.15 +
+                prediction['score'] * 0.50 +
+                prediction['prob'] * 100 * 0.35
             )
+            
+            # ★v3: 入选门槛 - 最低概率要求提高
+            if prediction['prob'] < 0.50:  # 概率<50%的直接排除
+                print(f"  [{i+1}] {symbol} {stock['name']} 概率{prediction['prob']:.0%}<50%，跳过")
+                continue
             
             scored_candidates.append(stock)
             
-            # 输出关键信号
             top_signals = prediction['signals'][:3]
             signal_str = ' | '.join(top_signals) if top_signals else '—'
             print(f"  [{i+1}/{analyze_count}] {symbol} {stock['name']} "
@@ -253,7 +302,7 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None):
             print(f"  跳过 {symbol}: {e}")
             continue
     
-    # 第四步：排序（以前瞻性综合评分为准）
+    # 第四步：排序
     print("[4/4] 排序输出...")
     scored_candidates.sort(key=lambda x: x['total_score'], reverse=True)
     
@@ -273,20 +322,20 @@ def get_top_picks(budget_top=5, strong_top=5):
 # ==================== 策略优化模块 ====================
 
 class StrategyOptimizer:
-    """策略优化器 - 基于历史推荐结果不断迭代"""
+    """策略优化器"""
     
     DATA_DIR = os.environ.get('DATA_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data'))
     HISTORY_FILE = os.path.join(DATA_DIR, 'history', 'recommendations.json')
     
     PARAMS = {
-        'min_tech_score': 55,
-        'min_next_day_prob': 0.45,
-        'weight_potential': 0.25,
-        'weight_tech': 0.45,
-        'weight_prob': 0.30,
-        'max_consecutive_up': 4,
-        'rsi_overbought': 75,
-        'rsi_oversold': 30,
+        'min_tech_score': 58,
+        'min_next_day_prob': 0.50,
+        'weight_potential': 0.15,
+        'weight_tech': 0.50,
+        'weight_prob': 0.35,
+        'max_recommend_day_change': 4.0,  # ★v3: 推荐日涨幅上限
+        'min_prob_threshold': 0.50,       # ★v3: 最低概率门槛
+        'repeat_blacklist_days': 5,        # ★v3: 重复推荐黑名单天数
     }
     
     def __init__(self):
@@ -303,7 +352,6 @@ class StrategyOptimizer:
             json.dump(self.history, f, ensure_ascii=False, indent=2)
     
     def record_recommendation(self, stock, category, date):
-        # 去重：同一日期+同一symbol+同一category不重复记录
         for existing in self.history:
             if (existing.get('date') == date and 
                 existing.get('symbol') == stock['symbol'] and 
@@ -334,7 +382,7 @@ class StrategyOptimizer:
                     'next_day_high': next_day_high,
                     'next_day_close': next_day_close,
                     'next_day_change': next_day_change,
-                    'hit': 2 <= next_day_change <= 5,
+                    'hit': next_day_change >= 2,  # ★v3: >=2%算胜
                     'max_profit': next_day_change,
                 }
                 self._save_history()
@@ -342,13 +390,9 @@ class StrategyOptimizer:
         return False
     
     def optimize(self):
-        if len(self.history) < 5:
-            print("历史数据不足，暂不优化")
-            return
-        
         completed = [r for r in self.history if r.get('result')]
         if len(completed) < 5:
-            print(f"已完成复盘{len(completed)}条，数据不足，暂不优化")
+            print("历史数据不足，暂不优化")
             return
         
         hits = [r for r in completed if r['result']['hit']]
@@ -369,23 +413,11 @@ class StrategyOptimizer:
             avg_change_miss = sum(r['recommend_change'] for r in misses) / len(misses)
             print(f"未命中组: 技术分={avg_tech_miss:.1f}, 概率={avg_prob_miss:.1%}, 推荐日涨幅={avg_change_miss:.1f}%")
         
-        # 参数调整
-        if win_rate < 0.5 and len(completed) >= 10:
-            self.PARAMS['min_tech_score'] = min(70, self.PARAMS['min_tech_score'] + 3)
+        # 动态参数调整
+        if win_rate < 0.3 and len(completed) >= 10:
             self.PARAMS['min_next_day_prob'] = min(0.65, self.PARAMS['min_next_day_prob'] + 0.03)
-            print("→ 胜率偏低，已提高筛选门槛")
-        elif win_rate > 0.7 and len(completed) >= 10:
-            self.PARAMS['min_tech_score'] = max(45, self.PARAMS['min_tech_score'] - 2)
-            self.PARAMS['min_next_day_prob'] = max(0.35, self.PARAMS['min_next_day_prob'] - 0.02)
-            print("→ 胜率较好，适度放宽门槛")
-        
-        # 基于推荐日涨幅特征优化：如果未命中的推荐日涨幅偏高，说明追涨策略有问题
-        if misses:
-            high_change_misses = [r for r in misses if r['recommend_change'] > 4]
-            if len(high_change_misses) > len(misses) * 0.5:
-                print("→ 未命中多为当日涨幅偏高股，强化回调反弹信号权重")
-                self.PARAMS['weight_tech'] = min(0.55, self.PARAMS['weight_tech'] + 0.03)
-                self.PARAMS['weight_potential'] = max(0.15, self.PARAMS['weight_potential'] - 0.02)
+            self.PARAMS['max_recommend_day_change'] = max(2.0, self.PARAMS['max_recommend_day_change'] - 0.5)
+            print(f"→ 胜率偏低，提高门槛: 概率>={self.PARAMS['min_next_day_prob']:.0%}, 涨幅<={self.PARAMS['max_recommend_day_change']:.1f}%")
         
         print(f"当前参数: {json.dumps(self.PARAMS, indent=2)}")
 
