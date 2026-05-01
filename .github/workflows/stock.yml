@@ -11,10 +11,44 @@ on:
         default: 'check'
 
 jobs:
+  # 交易日检查 - 所有任务的前置条件
+  trading-day-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_trading_day: ${{ steps.check.outputs.is_trading_day }}
+    steps:
+      - id: check
+        run: |
+          BJ_DOW=$(TZ=Asia/Shanghai date +%u)
+          TODAY=$(TZ=Asia/Shanghai date +%Y-%m-%d)
+          
+          # 周末直接跳过
+          if [ "$BJ_DOW" -gt 5 ]; then
+            echo "is_trading_day=false" >> $GITHUB_OUTPUT
+            echo "周末，非交易日"
+            exit 0
+          fi
+          
+          # 节假日检查（从data分支读取）
+          git clone --depth=1 -b data https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git /tmp/data 2>/dev/null || true
+          if [ -f /tmp/data/data/config/holidays.json ]; then
+            YEAR=$(echo $TODAY | cut -c1-4)
+            HOLIDAYS=$(python3 -c "import json; d=json.load(open('/tmp/data/data/config/holidays.json')); print(' '.join(d.get('$YEAR',[])))")
+            for h in $HOLIDAYS; do
+              if [ "$h" = "$TODAY" ]; then
+                echo "is_trading_day=false" >> $GITHUB_OUTPUT
+                echo "节假日($TODAY)，非交易日"
+                exit 0
+              fi
+            done
+          fi
+          
+          echo "is_trading_day=true" >> $GITHUB_OUTPUT
+          echo "交易日确认"
+
   recommend:
-    if: >
-      github.event_name == 'repository_dispatch' && github.event.action == 'recommend'
-      || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'recommend')
+    needs: trading-day-check
+    if: needs.trading-day-check.outputs.is_trading_day == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,9 +89,8 @@ jobs:
           fi
 
   review:
-    if: >
-      github.event_name == 'repository_dispatch' && github.event.action == 'review'
-      || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'review')
+    needs: trading-day-check
+    if: needs.trading-day-check.outputs.is_trading_day == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -96,62 +129,3 @@ jobs:
           else
             echo "No data changes"
           fi
-
-  check:
-    if: >
-      github.event_name == 'repository_dispatch' && github.event.action == 'check'
-      || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'check')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-          token: ${{ secrets.GH_PAT }}
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Check and trigger
-        env:
-          DATA_DIR: ./data
-        run: |
-          git fetch origin data 2>/dev/null || true
-          if git branch -r | grep -q "origin/data"; then
-            git checkout origin/data -- data/ 2>/dev/null || true
-          else
-            mkdir -p data/history data/reports data/config
-          fi
-          
-          python -c "
-          import json, os, requests
-          from datetime import datetime, timedelta
-          
-          now = datetime.utcnow() + timedelta(hours=8)
-          today = now.strftime('%Y-%m-%d')
-          minutes = now.hour * 60 + now.minute
-          
-          # 检查推荐
-          if minutes >= 865:
-              try:
-                  with open('data/reports/latest.json') as f:
-                      d = json.load(f)
-                  if d.get('date') != today:
-                      print('需要推荐')
-                      os.system('curl -s -X POST -H \"Authorization: token $GH_PAT\" -H \"Accept: application/vnd.github.v3+json\" https://api.github.com/repos/${{ github.repository }}/dispatches -d \\'{\"event_type\":\"recommend\"}\\'')
-              except:
-                  print('需要推荐(无数据)')
-                  os.system('curl -s -X POST -H \"Authorization: token $GH_PAT\" -H \"Accept: application/vnd.github.v3+json\" https://api.github.com/repos/${{ github.repository }}/dispatches -d \\'{\"event_type\":\"recommend\"}\\'')
-          
-          # 检查复盘
-          if minutes >= 575:
-              try:
-                  with open('data/history/recommendations.json') as f:
-                      data = json.load(f)
-                  pending = [r for r in data if r.get('result') is None and r['date'] < today]
-                  if len(pending) > 0:
-                      print(f'需要复盘({len(pending)}条)')
-                      os.system('curl -s -X POST -H \"Authorization: token $GH_PAT\" -H \"Accept: application/vnd.github.v3+json\" https://api.github.com/repos/${{ github.repository }}/dispatches -d \\'{\"event_type\":\"review\"}\\'')
-              except:
-                  pass
-          "
