@@ -146,9 +146,15 @@ def review_previous_recommendations():
         print(f"📊 累计统计: 总推荐 {len(completed)} 次 | 命中 {len(hits)} 次 | 胜率 {win_rate:.1%}")
         print(f"{'='*60}")
     
-    # 执行优化
+    # 执行优化（自动持久化参数）
     optimizer.optimize()
-    
+
+    # ★v4: 如果参数有变化，推送优化通知
+    if optimizer.params_changed:
+        print("\n📱 策略参数已优化，推送通知...")
+        from wechat_push import push_optimization_notice
+        push_optimization_notice(optimizer)
+
     # 微信推送复盘
     print("\n📱 推送复盘到企业微信...")
     from wechat_push import push_review

@@ -216,6 +216,59 @@ def push_review():
     return False
 
 
+def format_optimization_notice(optimizer):
+    """格式化策略优化通知"""
+    params = optimizer.PARAMS
+    calibration = optimizer.prob_calibration
+    meta = optimizer.meta
+    win_rate = meta.get('last_win_rate', 0)
+    sample_size = meta.get('total_reviews', 0)
+
+    content = f"""# 🔧 策略自适应优化
+
+> {datetime.now().strftime('%Y-%m-%d')} | 样本量 {sample_size} | 胜率 <font color="warning">{win_rate:.1%}</font>
+
+---
+
+## 概率校准
+> 偏移量: <font color="warning">{calibration.get('offset', 0):.4f}</font>
+"""
+    buckets = calibration.get('bucket_calibrations', {})
+    if buckets:
+        for key, val in buckets.items():
+            content += f"> 桶{key}: 预测{val['predicted_avg']:.2f} → 实际{val['actual_win_rate']:.2f} (n={val['count']})\n"
+
+    content += f"""
+---
+
+## 当前参数
+> 概率门槛: {params.get('min_next_day_prob', 0.50):.2f}
+> 涨幅上限: {params.get('max_recommend_day_change', 4.0):.1f}%
+> 技术分门槛: {params.get('min_tech_score', 58)}
+> 概率入选门槛: {params.get('min_prob_threshold', 0.50):.2f}
+> 黑名单天数: {params.get('repeat_blacklist_days', 5)}
+
+---
+
+## 权重配置
+> 潜力: {params.get('weight_potential', 0.15):.3f}
+> 技术: {params.get('weight_tech', 0.50):.3f}
+> 概率: {params.get('weight_prob', 0.35):.3f}
+
+<font color="comment">🤖 参数由策略优化器自动调整</font>
+"""
+    return content
+
+
+def push_optimization_notice(optimizer):
+    """推送策略优化通知到企业微信"""
+    content = format_optimization_notice(optimizer)
+    if content:
+        return send_wechat_message(content)
+    print("⚠️ 无优化通知可推送")
+    return False
+
+
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 2:

@@ -109,12 +109,12 @@ def run_daily_recommendation():
         preloaded[s['symbol']] = s
     print(f"  已加载 {len(preloaded)} 只股票数据")
     
-    # 低价股筛选
-    budget_candidates = screen_stocks('budget', max_candidates=15, preloaded_stocks=preloaded)
+    # 低价股筛选（使用持久化参数）
+    budget_candidates = screen_stocks('budget', max_candidates=15, preloaded_stocks=preloaded, params=optimizer.PARAMS)
     budget_pick = budget_candidates[0] if budget_candidates else None
-    
-    # 最强股筛选
-    strong_candidates = screen_stocks('strong', max_candidates=15, preloaded_stocks=preloaded)
+
+    # 最强股筛选（使用持久化参数）
+    strong_candidates = screen_stocks('strong', max_candidates=15, preloaded_stocks=preloaded, params=optimizer.PARAMS)
     if budget_pick:
         strong_candidates = [s for s in strong_candidates if s['symbol'] != budget_pick['symbol']]
     strong_pick = strong_candidates[0] if strong_candidates else None

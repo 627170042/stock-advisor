@@ -1,9 +1,16 @@
 """
-A股T+1短线选股系统 - 技术分析模块 v2
+A股T+1短线选股系统 - 技术分析模块 v3
 核心改进：从前瞻性角度评估次日上涨概率
 重点关注：趋势延续性、量价健康度、回调后反弹信号、资金承接力
+
+v3新增：概率校准机制
+- 基于历史命中/未命中的实际分布，自动修正概率偏移
+- predict_next_day() 末尾应用 calibrate_probability()
+- 校准参数从 data/config/strategy_params.json 读取
 """
 import numpy as np
+import json
+import os
 
 
 # ==================== 基础指标计算 ====================
@@ -389,7 +396,10 @@ def predict_next_day(kline_data, stock_info=None):
     # =====================================================
     prob = max(0.10, min(0.90, prob))
     score = max(0, min(100, score))
-    
+
+    # ★v3: 概率校准 - 将模型原始输出修正为接近实际胜率
+    prob = calibrate_probability(prob)
+
     return {
         'prob': prob,
         'signals': signals,
@@ -437,3 +447,58 @@ def estimate_next_day_prob(kline_data, realtime=None):
     """评估次日涨幅2%-5%的概率"""
     result = predict_next_day(kline_data, realtime)
     return result['prob']
+
+
+# ==================== 概率校准模块 v3 ====================
+
+def load_calibration():
+    """
+    从 data/config/strategy_params.json 加载概率校准参数
+    返回: {'offset': float, 'scale': float, 'bucket_calibrations': dict}
+    """
+    data_dir = os.environ.get('DATA_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data'))
+    params_file = os.path.join(data_dir, 'config', 'strategy_params.json')
+    if os.path.exists(params_file):
+        try:
+            with open(params_file, 'r') as f:
+                data = json.load(f)
+                return data.get('prob_calibration', {'offset': 0.0, 'scale': 1.0, 'bucket_calibrations': {}})
+        except (json.JSONDecodeError, IOError):
+            pass
+    return {'offset': 0.0, 'scale': 1.0, 'bucket_calibrations': {}}
+
+
+def calibrate_probability(raw_prob, calibration=None):
+    """
+    校准概率 - 将模型原始输出修正为接近实际胜率
+
+    策略:
+    1. 优先使用分桶校准（样本>=3时用桶内实际胜率）
+    2. 退化为全局偏移校准
+    3. 无校准数据时原值返回
+
+    防护: 结果始终裁剪到 [0.05, 0.90]
+    """
+    if calibration is None:
+        calibration = load_calibration()
+
+    # 优先使用分桶校准
+    buckets = calibration.get('bucket_calibrations', {})
+    if buckets:
+        for bucket_range, bucket_data in buckets.items():
+            parts = bucket_range.split('-')
+            low, high = float(parts[0]), float(parts[1])
+            if low <= raw_prob < high:
+                sample_count = bucket_data.get('count', 0)
+                if sample_count >= 5:  # 样本量>=5才用分桶校准
+                    calibrated = bucket_data['actual_win_rate']
+                    return max(0.05, min(0.90, calibrated))
+
+    # 退化为全局偏移
+    offset = calibration.get('offset', 0.0)
+    if offset != 0.0:
+        calibrated = raw_prob + offset
+        return max(0.05, min(0.90, calibrated))
+
+    # 无校准数据，原值返回
+    return raw_prob
