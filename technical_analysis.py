@@ -473,11 +473,12 @@ def calibrate_probability(raw_prob, calibration=None):
     校准概率 - 将模型原始输出修正为接近实际胜率
 
     策略:
-    1. 优先使用分桶校准（样本>=3时用桶内实际胜率）
+    1. 优先使用分桶校准（样本>=5时用桶内融合值）
     2. 退化为全局偏移校准
     3. 无校准数据时原值返回
 
-    防护: 结果始终裁剪到 [0.05, 0.90]
+    防护: 结果始终裁剪到 [0.15, 0.90]
+    ★保底0.15: 不因历史0%胜率就完全否定一个概率区间
     """
     if calibration is None:
         calibration = load_calibration()
@@ -491,14 +492,15 @@ def calibrate_probability(raw_prob, calibration=None):
             if low <= raw_prob < high:
                 sample_count = bucket_data.get('count', 0)
                 if sample_count >= 5:  # 样本量>=5才用分桶校准
-                    calibrated = bucket_data['actual_win_rate']
-                    return max(0.05, min(0.90, calibrated))
+                    # ★使用融合值而非直接替换
+                    calibrated = bucket_data.get('fused_rate', bucket_data.get('actual_win_rate', raw_prob))
+                    return max(0.15, min(0.90, calibrated))
 
     # 退化为全局偏移
     offset = calibration.get('offset', 0.0)
     if offset != 0.0:
         calibrated = raw_prob + offset
-        return max(0.05, min(0.90, calibrated))
+        return max(0.15, min(0.90, calibrated))
 
     # 无校准数据，原值返回
     return raw_prob

@@ -372,13 +372,13 @@ class StrategyOptimizer:
 
     # 参数边界约束
     PARAM_BOUNDS = {
-        'min_tech_score': (50, 75),
-        'min_next_day_prob': (0.45, 0.70),
+        'min_tech_score': (50, 70),         # 收紧上限70（原75太松）
+        'min_next_day_prob': (0.45, 0.60),   # 收紧上限0.60（原0.70太松，导致全被过滤）
         'weight_potential': (0.05, 0.30),
         'weight_tech': (0.20, 0.60),
         'weight_prob': (0.15, 0.50),
         'max_recommend_day_change': (2.5, 4.5),
-        'min_prob_threshold': (0.40, 0.65),
+        'min_prob_threshold': (0.40, 0.55),  # 收紧上限0.55（原0.65太松）
         'repeat_blacklist_days': (3, 10),
     }
 
@@ -487,8 +487,13 @@ class StrategyOptimizer:
         """
         基于历史数据计算概率校准参数
         两种模式：
-        1. 全局偏移（样本<20时）：offset = avg(actual) - avg(predicted)
-        2. 分桶校准（样本>=5/桶时）：桶内实际胜率直接替换
+        1. 全局偏移（默认）：offset = avg(actual) - avg(predicted)
+        2. 分桶校准（样本>=5/桶时）：桶内实际胜率与预测做加权融合
+
+        ★关键防过度拟合：
+        - 全局偏移上限收紧：最多-0.15（不管样本多少）
+        - 分桶校准不直接替换，而是与预测值做7:3融合
+        - 分桶结果保底不低于0.15
         """
         if len(completed) < 5:
             print("  样本<5，跳过概率校准")
@@ -503,24 +508,35 @@ class StrategyOptimizer:
         # 全局偏移
         offset = avg_actual - avg_predicted
 
-        # 防过度拟合: 偏移幅度受限
-        max_offset = min(0.35, 0.10 + len(completed) * 0.0125)
+        # ★防过度拟合: 偏移上限收紧到0.15
+        # 之前0.35太激进，32条样本就-0.35，直接把所有股票概率归零
+        max_offset = min(0.15, 0.05 + len(completed) * 0.003)
         # 只允许向下校准（概率虚高时修正，不虚增概率）
         offset = max(-max_offset, min(0, offset))
 
-        # 分桶校准
+        # 分桶校准（★不直接替换，做融合）
         buckets = {}
         bucket_ranges = [(0.50, 0.60), (0.60, 0.70), (0.70, 0.80), (0.80, 0.90)]
         for low, high in bucket_ranges:
             bucket_records = [r for r in completed if low <= r.get('next_day_prob', 0) < high]
-            # ★样本>=5才启用分桶校准，否则用全局偏移更稳健
+            # 样本>=5才启用分桶校准
             if len(bucket_records) >= 5:
                 bucket_hits = sum(1 for r in bucket_records if r['result']['hit'])
+                actual_rate = bucket_hits / len(bucket_records)
+                predicted_avg = sum(r.get('next_day_prob', 0) for r in bucket_records) / len(bucket_records)
+
+                # ★融合而非替换：实际胜率*0.7 + 预测值*0.3
+                # 避免0%实际胜率直接把整个桶判死
+                fused_rate = actual_rate * 0.7 + predicted_avg * 0.3
+                # 保底不低于0.15（即使实际0%也保留15%的可能性）
+                fused_rate = max(0.15, fused_rate)
+
                 bucket_key = f"{low:.2f}-{high:.2f}"
                 buckets[bucket_key] = {
                     'count': len(bucket_records),
-                    'predicted_avg': sum(r.get('next_day_prob', 0) for r in bucket_records) / len(bucket_records),
-                    'actual_win_rate': bucket_hits / len(bucket_records),
+                    'predicted_avg': round(predicted_avg, 4),
+                    'actual_win_rate': round(actual_rate, 4),
+                    'fused_rate': round(fused_rate, 4),  # ★融合后的校准值
                 }
 
         old_offset = self.prob_calibration.get('offset', 0.0)
@@ -534,8 +550,8 @@ class StrategyOptimizer:
               f"(模型平均{avg_predicted:.2f}, 实际胜率{avg_actual:.2f})")
         if buckets:
             for key, val in buckets.items():
-                print(f"    桶{key}: 预测{val['predicted_avg']:.2f}, 实际{val['actual_win_rate']:.2f} "
-                      f"(n={val['count']})")
+                print(f"    桶{key}: 预测{val['predicted_avg']:.2f}, 实际{val['actual_win_rate']:.2f}, "
+                      f"融合{val['fused_rate']:.2f} (n={val['count']})")
 
         if abs(offset - old_offset) > 0.001:
             self.params_changed = True
