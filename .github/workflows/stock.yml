@@ -48,7 +48,9 @@ jobs:
 
   recommend:
     needs: trading-day-check
-    if: needs.trading-day-check.outputs.is_trading_day == 'true'
+    if: >-
+      needs.trading-day-check.outputs.is_trading_day == 'true' && 
+      (github.event.action == 'recommend' || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'recommend'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +92,9 @@ jobs:
 
   review:
     needs: trading-day-check
-    if: needs.trading-day-check.outputs.is_trading_day == 'true'
+    if: >-
+      needs.trading-day-check.outputs.is_trading_day == 'true' && 
+      (github.event.action == 'review' || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'review'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
