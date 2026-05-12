@@ -282,7 +282,7 @@ def get_stock_industry_f10(code):
     """
     通过东方财富F10接口获取个股行业分类(EM2016格式)
     code: sh600519 或 sz000001
-    返回: "电力设备-光伏设备-逆变器" 或 None
+    返回: "食品饮料-饮料-白酒" 或 None
     """
     # 转换代码格式: sh600519 → SH600519
     em_code = code.upper()
@@ -290,15 +290,25 @@ def get_stock_industry_f10(code):
     try:
         r = requests.get(url, headers=EM_HEADERS, timeout=10)
         data = r.json()
-        # 从F10数据中提取EM2016行业分类
+        # EM2016行业分类在jbzl[0]['EM2016']中
+        jbzl = data.get('jbzl', [])
+        if isinstance(jbzl, list) and jbzl:
+            industry = jbzl[0].get('EM2016', '')
+            if industry:
+                return industry
+        # 尝试其他字段
         industry = data.get('sshy', '')
-        if not industry:
-            # 尝试其他字段
-            hy = data.get('hy', {})
-            if isinstance(hy, list) and hy:
-                industry = hy[0].get('EM2016', '') or hy[0].get('INDUSTRYCSRC1', '')
-            elif isinstance(hy, dict):
-                industry = hy.get('EM2016', '') or hy.get('INDUSTRYCSRC1', '')
-        return industry if industry else None
+        if industry:
+            return industry
+        hy = data.get('hy', {})
+        if isinstance(hy, list) and hy:
+            industry = hy[0].get('EM2016', '') or hy[0].get('INDUSTRYCSRC1', '')
+            if industry:
+                return industry
+        elif isinstance(hy, dict):
+            industry = hy.get('EM2016', '') or hy.get('INDUSTRYCSRC1', '')
+            if industry:
+                return industry
+        return None
     except Exception as e:
         return None

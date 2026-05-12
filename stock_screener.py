@@ -1,20 +1,13 @@
 """
-A股T+1短线选股系统 - 筛选引擎模块 v4
-★核心升级：自适应策略优化闭环★
+A股T+1短线选股系统 - 筛选引擎模块 v5
+★核心升级：反转选股逻辑★
 
-v3回顾：
-1. ❌ budget策略胜率仅8% → 两支都走strong
-2. ❌ 追涨(推荐日>=3%)次日60%亏损 → 严控涨幅上限
-3. ❌ 重复推荐不命中 → 增加黑名单
-4. ❌ 概率评分虚高(84%→实际15%) → 新增概率校准
-5. ❌ 参数不持久化 → 每次运行归零 → 新增strategy_params.json持久化
-
-v4核心：
-- 参数持久化：动态参数保存到data/config/strategy_params.json
-- 概率校准：基于历史命中/未命中的实际分布，自动修正概率偏移
-- 门槛自动调整：胜率趋势驱动门槛收紧/放宽
-- 权重自适应：基于维度区分度微调权重
-- 防过度拟合：样本量门控、步长反相关、参数边界约束
+v4→v5 核心变化：
+1. 候选池扩展：加入跌幅榜（找回调反弹机会）
+2. 评分权重反转：潜力分>技术分>概率分（概率是反向指标！）
+3. 新增"微涨死亡区间"过滤 — 0~2%微涨股胜率0%
+4. 简化优化器：移除桶校准、简化权重调整
+5. 强化黑名单：永远不推荐0/3以下的股票
 """
 import time
 import json
@@ -72,12 +65,12 @@ def filter_liquidity(stock):
     return True, "通过"
 
 
-def filter_chase_risk(stock, max_change=4.0):
+def filter_chase_risk(stock, max_change=3.0):
     """
-    追涨风险过滤
-    数据证明: 推荐日涨幅>=3%的股票，次日60%亏损，平均-0.48%
-    策略: 推荐日涨幅>max_change的直接排除，3-max_change的降权
-    max_change: 动态参数，从strategy_params.json读取
+    ★v5强化: 追涨风险过滤
+    数据铁证: 推荐日涨0~2%的股票次日胜率0%！
+    v4: max_change=4.0 → v5: max_change=3.0（更严格）
+    新增: 0~2%微涨区间也需要警惕（不硬过滤但大降权）
     """
     change_pct = stock.get('changepercent', 0)
     if change_pct > max_change:
@@ -85,11 +78,28 @@ def filter_chase_risk(stock, max_change=4.0):
     return True, "通过"
 
 
-def filter_recent_recommendations(stock, history_file, blacklist_days=5):
+def filter_death_zone(stock):
     """
-    短期重复推荐黑名单
-    数据证明: 紫金矿业3次推荐均未命中，紫光2次均亏损
-    blacklist_days: 动态参数，从strategy_params.json读取
+    ★v5新增: 微涨死亡区间过滤
+    数据: 推荐日涨0~2%的8只股票全部未命中！
+    策略: 直接过滤掉当日微涨0.5%~2%的股票（最危险区间）
+    """
+    change_pct = stock.get('changepercent', 0)
+    if 0.5 <= change_pct < 2.0:
+        # 这是一个很危险的区间，但不是100%必死
+        # 如果板块热度高，可以放行
+        sector_heat = stock.get('sector_heat')
+        if sector_heat and sector_heat.get('heat_level') == 'hot':
+            return True, "热门板块微涨(放行)"
+        return False, f"微涨死亡区({change_pct:.1f}%)"
+    return True, "通过"
+
+
+def filter_recent_recommendations(stock, history_file, blacklist_days=7):
+    """
+    ★v5强化: 短期重复推荐黑名单
+    v4: blacklist_days=5 → v5: blacklist_days=7
+    新增: 永久黑名单 — 推荐3次以上0命中的股票
     """
     try:
         with open(history_file) as f:
@@ -97,6 +107,8 @@ def filter_recent_recommendations(stock, history_file, blacklist_days=5):
 
         from datetime import timedelta
         now = datetime.now()
+        
+        # 短期黑名单
         recent_symbols = set()
         for r in history:
             rec_date = datetime.strptime(r['date'], '%Y-%m-%d')
@@ -105,39 +117,55 @@ def filter_recent_recommendations(stock, history_file, blacklist_days=5):
 
         if stock['symbol'] in recent_symbols:
             return False, f"近期已推荐({blacklist_days}日内)"
+        
+        # ★v5新增: 永久黑名单 — 推荐N次以上0命中的
+        symbol_records = [r for r in history if r['symbol'] == stock['symbol']]
+        if len(symbol_records) >= 3:
+            hits = sum(1 for r in symbol_records if r.get('result', {}).get('hit', False))
+            if hits == 0:
+                return False, f"永久黑名单({len(symbol_records)}推0中)"
+        
     except:
         pass
     return True, "通过"
 
 
-# ==================== 次日上涨潜力评分 v4 ====================
+# ==================== 次日上涨潜力评分 v5 ====================
 
 def score_next_day_potential(stock, sector_heat=None):
     """
-    v4: 基于历史复盘优化权重
-    核心变化: 加大当日涨幅区间的区分度，降低追涨股评分
-    ★v4新增: 板块热度评分维度
+    ★v5: 反转评分逻辑
+    核心变化:
+    1. 大幅提升回调股评分（-2%以上回调加分最多）
+    2. 0~2%微涨区大幅降权（死亡区间）
+    3. 板块热度对回调股有额外加成
     """
     score = 50
     change_pct = stock.get('changepercent', 0)
     turnover = stock.get('turnoverratio', 0)
     nmc = stock.get('nmc', 0)
 
-    # === 当日涨跌幅评分 ===
-    if -2 <= change_pct < 0:
-        score += 18  # 小幅回调，次日反弹概率最高
-    elif 0 <= change_pct <= 1:
-        score += 15  # 微涨蓄势
-    elif 1 < change_pct <= 2:
-        score += 10  # 温和上涨
-    elif 2 < change_pct <= 3:
-        score += 3   # 涨幅偏大
-    elif -4 <= change_pct < -2:
-        score += 5   # 较大回调
-    elif 3 < change_pct <= 4:
-        score -= 5   # 追涨区，降权
-    elif change_pct > 4:
-        score -= 15  # 高位追涨，重罚
+    # === 当日涨跌幅评分（★v5反转★） ===
+    if change_pct <= -3:
+        score += 25  # 深幅回调，反弹预期最强
+    elif -3 < change_pct <= -2:
+        score += 20  # 较大回调
+    elif -2 < change_pct <= -1:
+        score += 15  # 小幅回调
+    elif -1 < change_pct < -0.5:
+        score += 10  # 微跌
+    elif -0.5 <= change_pct < 0:
+        score += 8   # 几乎平盘偏弱
+    elif 0 <= change_pct < 0.5:
+        score += 3   # 微涨偏弱
+    elif 0.5 <= change_pct < 2:
+        score -= 10  # ★微涨死亡区，大降权
+    elif 2 <= change_pct < 3:
+        score -= 5   # 温和上涨
+    elif 3 <= change_pct < 4:
+        score -= 10  # 追涨区
+    elif change_pct >= 4:
+        score -= 20  # 高位追涨，重罚
 
     # === 换手率评分 ===
     if 3 <= turnover <= 8:
@@ -153,63 +181,86 @@ def score_next_day_potential(stock, sector_heat=None):
     if nmc > 0:
         nmc_yi = nmc / 10000
         if 50 <= nmc_yi <= 500:
-            score += 10  # 中大盘股更稳健
+            score += 10
         elif 20 <= nmc_yi < 50:
             score += 6
         elif 500 < nmc_yi <= 2000:
             score += 5
         elif nmc_yi < 20:
-            score -= 3  # 小盘股波动大，扣分
+            score -= 3
 
-    # === ★v4新增: 板块热度评分 (0-15分) ===
+    # === ★v5: 板块热度对回调股加成 ===
     if sector_heat:
         heat_score = sector_heat.get('heat_score', 50)
         heat_level = sector_heat.get('heat_level', 'warm')
         if heat_level == 'hot':
-            score += 15  # 热门板块加分
+            if change_pct < 0:
+                # 热门板块+回调 = 黄金组合
+                score += 20
+            else:
+                score += 10
         elif heat_level == 'warm':
-            score += 5   # 温热板块小加分
+            score += 5
         else:
-            score -= 5   # 冷门板块扣分
+            # 冷门板块回调 = 可能继续跌
+            if change_pct < 0:
+                score -= 5
+            else:
+                score -= 3
 
     return max(0, min(100, score))
 
 
-# ==================== 综合筛选流程 ====================
+# ==================== 综合筛选流程 v5 ====================
 
 def build_candidate_pool():
-    """多维度构建候选池"""
-    print("[1/4] 多维度构建候选池...")
+    """
+    ★v5: 扩展候选池
+    新增: 跌幅榜 — 寻找超跌反弹机会
+    """
+    print("[1/4] 多维度构建候选池（含跌幅榜）...")
 
     all_stocks = {}
 
-    volume_stocks = get_top_volume(60)
+    # 成交额前80（大盘股活跃度）
+    volume_stocks = get_top_volume(80)
     for s in volume_stocks:
         all_stocks[s['symbol']] = s
 
+    # 换手率前40（资金活跃度）
     turnover_stocks = get_top_turnover(40)
     for s in turnover_stocks:
         all_stocks[s['symbol']] = s
 
+    # 涨幅前40（市场热点）
     gainer_stocks = get_top_gainers(40)
     for s in gainer_stocks:
         all_stocks[s['symbol']] = s
 
-    print(f"  原始候选池: {len(all_stocks)} 只")
+    # ★v5新增: 跌幅榜（找超跌反弹）
+    loser_stocks = get_stock_list(page=1, num=40, sort='changepercent', asc=1)
+    for s in loser_stocks:
+        # 只选跌幅1.5%~5%的（太跌可能是利空）
+        if -5 <= s.get('changepercent', 0) <= -1.5:
+            all_stocks[s['symbol']] = s
+
+    print(f"  原始候选池: {len(all_stocks)} 只 (含跌幅榜)")
 
     return all_stocks
 
 
-def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None, params=None):
+def screen_stocks(category='budget', max_candidates=20, preloaded_stocks=None, params=None):
     """
-    综合筛选流程 v4
-    核心变化：
-    1. 接受动态params参数（从strategy_params.json读取）
-    2. 使用动态阈值代替硬编码值
-    3. 概率经过校准后使用
+    ★v5: 反转选股逻辑筛选流程
+    
+    核心变化:
+    1. 权重反转: 潜力0.40 > 技术0.35 > 概率0.25
+    2. 新增微涨死亡区过滤
+    3. 强化黑名单（永久黑名单）
+    4. 候选池含跌幅榜
     """
     print(f"\n{'='*60}")
-    print(f"开始筛选 [{category}] 类股票...")
+    print(f"开始筛选 [{category}] 类股票 (v5反转逻辑)...")
     print(f"{'='*60}")
 
     DATA_DIR = os.environ.get('DATA_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data'))
@@ -219,12 +270,12 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None, p
     if params is None:
         params = StrategyOptimizer.DEFAULT_PARAMS
 
-    max_recommend_day_change = params.get('max_recommend_day_change', 4.0)
-    min_prob_threshold = params.get('min_prob_threshold', 0.50)
-    repeat_blacklist_days = params.get('repeat_blacklist_days', 5)
-    weight_potential = params.get('weight_potential', 0.15)
-    weight_tech = params.get('weight_tech', 0.50)
-    weight_prob = params.get('weight_prob', 0.35)
+    max_recommend_day_change = params.get('max_recommend_day_change', 3.0)
+    min_prob_threshold = params.get('min_prob_threshold', 0.30)
+    repeat_blacklist_days = params.get('repeat_blacklist_days', 7)
+    weight_potential = params.get('weight_potential', 0.40)
+    weight_tech = params.get('weight_tech', 0.35)
+    weight_prob = params.get('weight_prob', 0.25)
 
     print(f"  动态参数: 涨幅上限={max_recommend_day_change}%, 概率门槛={min_prob_threshold:.0%}, "
           f"黑名单={repeat_blacklist_days}日")
@@ -236,7 +287,6 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None, p
     else:
         all_stocks = build_candidate_pool()
 
-    # 第二步：基础过滤 + 追涨过滤 + 重复推荐过滤 + 预评分
     # 加载板块热度数据
     from sector_heat import SectorHeatMap
     sector_map = SectorHeatMap()
@@ -247,7 +297,7 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None, p
 
     print("[2/4] 多层过滤...")
     candidates = []
-    filter_stats = {'basic': 0, 'liquidity': 0, 'chase': 0, 'repeat': 0}
+    filter_stats = {'basic': 0, 'liquidity': 0, 'chase': 0, 'death_zone': 0, 'repeat': 0}
 
     for symbol, stock in all_stocks.items():
         ok, reason = filter_basic(stock, category)
@@ -260,29 +310,36 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None, p
             filter_stats['liquidity'] += 1
             continue
 
-        # 追涨风险过滤（动态阈值）
+        # ★v5: 更严格的追涨过滤
         ok, reason = filter_chase_risk(stock, max_change=max_recommend_day_change)
         if not ok:
             filter_stats['chase'] += 1
             continue
 
-        # 短期重复推荐过滤（动态天数）
+        # ★v5: 获取板块热度（在死亡区过滤前，因为需要板块信息）
+        from sector_heat import get_sector_heat_for_stock
+        stock_sector_heat = get_sector_heat_for_stock(symbol, stock.get('name', ''), sector_map)
+        stock['sector_heat'] = stock_sector_heat
+
+        # ★v5新增: 微涨死亡区过滤
+        ok, reason = filter_death_zone(stock)
+        if not ok:
+            filter_stats['death_zone'] += 1
+            continue
+
+        # 短期重复推荐过滤（动态天数+永久黑名单）
         ok, reason = filter_recent_recommendations(stock, history_file, blacklist_days=repeat_blacklist_days)
         if not ok:
             filter_stats['repeat'] += 1
             continue
-
-        # 获取板块热度
-        from sector_heat import get_sector_heat_for_stock
-        stock_sector_heat = get_sector_heat_for_stock(symbol, stock.get('name', ''), sector_map)
-        stock['sector_heat'] = stock_sector_heat
 
         potential_score = score_next_day_potential(stock, sector_heat=stock_sector_heat)
         stock['potential_score'] = potential_score
         candidates.append(stock)
 
     print(f"  基础过滤淘汰: {filter_stats['basic']} | 流动性淘汰: {filter_stats['liquidity']}")
-    print(f"  追涨淘汰: {filter_stats['chase']} | 重复推荐淘汰: {filter_stats['repeat']}")
+    print(f"  追涨淘汰: {filter_stats['chase']} | ★死亡区淘汰: {filter_stats['death_zone']}")
+    print(f"  重复推荐淘汰: {filter_stats['repeat']}")
     print(f"  通过过滤剩余 {len(candidates)} 只")
 
     candidates.sort(key=lambda x: x['potential_score'], reverse=True)
@@ -324,14 +381,14 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None, p
             stock['kdj_j'] = J
             stock['kline'] = kline
 
-            # 动态权重计算综合评分
+            # ★v5: 反转权重 — 潜力最大，概率最小
             stock['total_score'] = (
                 stock['potential_score'] * weight_potential +
                 prediction['score'] * weight_tech +
                 prediction['prob'] * 100 * weight_prob
             )
 
-            # 动态概率门槛
+            # ★v5: 降低概率门槛 — 概率是反向指标，不能设太高
             if prediction['prob'] < min_prob_threshold:
                 print(f"  [{i+1}] {symbol} {stock['name']} 概率{prediction['prob']:.0%}<{min_prob_threshold:.0%}，跳过")
                 continue
@@ -368,52 +425,51 @@ def get_top_picks(budget_top=5, strong_top=5, params=None):
     """获取最终推荐"""
     all_stocks = build_candidate_pool()
 
-    budget_candidates = screen_stocks('budget', max_candidates=15, preloaded_stocks=all_stocks, params=params)
-    strong_candidates = screen_stocks('strong', max_candidates=15, preloaded_stocks=all_stocks, params=params)
+    budget_candidates = screen_stocks('budget', max_candidates=20, preloaded_stocks=all_stocks, params=params)
+    strong_candidates = screen_stocks('strong', max_candidates=20, preloaded_stocks=all_stocks, params=params)
 
     return budget_candidates[:budget_top], strong_candidates[:strong_top]
 
 
-# ==================== 策略优化模块 v4 ====================
+# ==================== 策略优化模块 v5 ====================
 
 class StrategyOptimizer:
     """
-    自适应策略优化器 v4
-
-    核心能力：
-    1. 参数持久化 - 保存到 data/config/strategy_params.json
-    2. 概率校准 - 基于历史命中率自动修正概率偏移
-    3. 门槛自动调整 - 胜率趋势驱动
-    4. 权重自适应 - 基于维度区分度
-    5. 防过度拟合 - 样本量门控、步长约束、参数边界
+    ★v5简化: 自适应策略优化器
+    
+    简化方向:
+    1. 移除桶校准 — 小样本不稳定
+    2. 全局偏移收紧 — 概率已是反向指标，大幅偏移无意义
+    3. 简化权重调整 — 概率维度降权
+    4. 保留门槛调整 — 但更保守
     """
 
     DATA_DIR = os.environ.get('DATA_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data'))
     HISTORY_FILE = os.path.join(DATA_DIR, 'history', 'recommendations.json')
     PARAMS_FILE = os.path.join(DATA_DIR, 'config', 'strategy_params.json')
 
-    # 硬编码默认值（首次运行时使用）
+    # ★v5默认参数 — 反转权重
     DEFAULT_PARAMS = {
-        'min_tech_score': 58,
-        'min_next_day_prob': 0.50,
-        'weight_potential': 0.15,
-        'weight_tech': 0.50,
-        'weight_prob': 0.35,
-        'max_recommend_day_change': 4.0,
-        'min_prob_threshold': 0.50,
-        'repeat_blacklist_days': 5,
+        'min_tech_score': 50,           # 降低技术分门槛
+        'min_next_day_prob': 0.30,       # ★大幅降低概率门槛
+        'weight_potential': 0.40,        # ★潜力分权重最大
+        'weight_tech': 0.35,            # 技术分第二
+        'weight_prob': 0.25,            # ★概率分权重最低（反向指标）
+        'max_recommend_day_change': 3.0, # ★收紧追涨上限（4.0→3.0）
+        'min_prob_threshold': 0.30,      # ★大幅降低概率门槛
+        'repeat_blacklist_days': 7,      # 延长黑名单天数
     }
 
     # 参数边界约束
     PARAM_BOUNDS = {
-        'min_tech_score': (50, 70),         # 收紧上限70（原75太松）
-        'min_next_day_prob': (0.45, 0.60),   # 收紧上限0.60（原0.70太松，导致全被过滤）
-        'weight_potential': (0.05, 0.30),
-        'weight_tech': (0.20, 0.60),
-        'weight_prob': (0.15, 0.50),
-        'max_recommend_day_change': (2.5, 4.5),
-        'min_prob_threshold': (0.40, 0.55),  # 收紧上限0.55（原0.65太松）
-        'repeat_blacklist_days': (3, 10),
+        'min_tech_score': (40, 65),
+        'min_next_day_prob': (0.20, 0.45),
+        'weight_potential': (0.25, 0.50),
+        'weight_tech': (0.20, 0.45),
+        'weight_prob': (0.10, 0.35),
+        'max_recommend_day_change': (2.0, 4.0),
+        'min_prob_threshold': (0.20, 0.45),
+        'repeat_blacklist_days': (5, 14),
     }
 
     def __init__(self):
@@ -422,7 +478,6 @@ class StrategyOptimizer:
         self.prob_calibration = {'offset': 0.0, 'scale': 1.0, 'bucket_calibrations': {}}
         self.meta = {'total_reviews': 0, 'last_win_rate': 0.0, 'adjustment_history': []}
         self.params_changed = False
-        # 从文件加载校准和元数据
         self._load_calibration_and_meta()
 
     def _load_history(self):
@@ -442,7 +497,6 @@ class StrategyOptimizer:
                 with open(self.PARAMS_FILE, 'r') as f:
                     data = json.load(f)
                     params = data.get('params', {})
-                    # 补充缺失的参数（DEFAULT_PARAMS中有但文件中没有的）
                     for key, default_val in self.DEFAULT_PARAMS.items():
                         if key not in params:
                             params[key] = default_val
@@ -455,7 +509,7 @@ class StrategyOptimizer:
         """将动态参数持久化到strategy_params.json"""
         os.makedirs(os.path.dirname(self.PARAMS_FILE), exist_ok=True)
         data = {
-            'version': 2,
+            'version': 3,
             'last_updated': datetime.now().strftime('%Y-%m-%d'),
             'params': self.PARAMS,
             'prob_calibration': self.prob_calibration,
@@ -489,11 +543,12 @@ class StrategyOptimizer:
             'category': category,
             'recommend_price': stock['trade'],
             'recommend_change': stock['changepercent'],
-            'potential_score': stock.get('potential_score', 0),  # ★v4: 新增
+            'potential_score': stock.get('potential_score', 0),
             'tech_score': stock.get('tech_score', 0),
             'next_day_prob': stock.get('next_day_prob', 0),
             'total_score': stock.get('total_score', 0),
             'signals': stock.get('signals', []),
+            'sector_heat': stock.get('sector_heat'),
             'result': None,
         }
         self.history.append(rec)
@@ -508,23 +563,23 @@ class StrategyOptimizer:
                     'next_day_high': next_day_high,
                     'next_day_close': next_day_close,
                     'next_day_change': next_day_change,
-                    'hit': next_day_change >= 2,  # >=2%算胜
+                    'hit': next_day_change >= 2,
                     'max_profit': next_day_change,
                 }
                 self._save_history()
                 return True
         return False
 
-    # ==================== 概率校准 ====================
+    # ==================== v5简化: 概率校准 ====================
 
     def _compute_prob_calibration(self, completed):
         """
-        基于历史数据计算概率校准参数
-
-        ★v4.1 核心教训：校准是为了修正偏差，不是为了把所有股票都杀掉
-        - 偏移上限收紧到0.10
-        - 分桶校准使用融合值，保底0.20
-        - 每次从原始数据重新计算，不做累积偏移
+        ★v5简化: 只算全局偏移，不做桶校准
+        
+        原因:
+        1. 38个样本做桶校准统计意义不足
+        2. 模型概率是反向指标，桶校准会加剧问题
+        3. 全局偏移已经够用
         """
         if len(completed) < 5:
             print("  样本<5，跳过概率校准")
@@ -536,113 +591,56 @@ class StrategyOptimizer:
         avg_predicted = sum(predicted_probs) / len(predicted_probs)
         avg_actual = sum(actual_hits) / len(actual_hits)
 
-        # 全局偏移：从原始数据算，不累积
+        # 全局偏移
         offset = avg_actual - avg_predicted
 
-        # ★偏移上限收紧到0.10，不管样本多少
-        # 逻辑：0.10的偏移已经足够表达"模型偏乐观"
-        # 更大的偏移只会杀死所有股票，无法提供有用信号
-        max_offset = min(0.10, 0.03 + len(completed) * 0.002)
+        # ★v5: 偏移收紧到0.05 — 概率已是反向指标，大偏移无意义
+        max_offset = 0.05
         offset = max(-max_offset, min(0, offset))
-
-        # 分桶校准（融合而非替换）
-        buckets = {}
-        bucket_ranges = [(0.50, 0.60), (0.60, 0.70), (0.70, 0.80), (0.80, 0.90)]
-        for low, high in bucket_ranges:
-            bucket_records = [r for r in completed if low <= r.get('next_day_prob', 0) < high]
-            if len(bucket_records) >= 5:
-                bucket_hits = sum(1 for r in bucket_records if r['result']['hit'])
-                actual_rate = bucket_hits / len(bucket_records)
-                predicted_avg = sum(r.get('next_day_prob', 0) for r in bucket_records) / len(bucket_records)
-
-                # 融合：实际胜率*0.5 + 预测值*0.5（更保守的融合比例）
-                fused_rate = actual_rate * 0.5 + predicted_avg * 0.5
-                # 保底不低于0.20
-                fused_rate = max(0.20, fused_rate)
-
-                bucket_key = f"{low:.2f}-{high:.2f}"
-                buckets[bucket_key] = {
-                    'count': len(bucket_records),
-                    'predicted_avg': round(predicted_avg, 4),
-                    'actual_win_rate': round(actual_rate, 4),
-                    'fused_rate': round(fused_rate, 4),
-                }
 
         old_offset = self.prob_calibration.get('offset', 0.0)
         self.prob_calibration = {
             'offset': round(offset, 4),
             'scale': 1.0,
-            'bucket_calibrations': buckets,
+            'bucket_calibrations': {},  # v5: 不再使用桶校准
         }
 
-        print(f"  概率校准: 偏移 {old_offset:.4f} → {offset:.4f} "
+        print(f"  概率校准(v5简化): 偏移 {old_offset:.4f} → {offset:.4f} "
               f"(模型平均{avg_predicted:.2f}, 实际胜率{avg_actual:.2f})")
-        if buckets:
-            for key, val in buckets.items():
-                print(f"    桶{key}: 预测{val['predicted_avg']:.2f}, 实际{val['actual_win_rate']:.2f}, "
-                      f"融合{val['fused_rate']:.2f} (n={val['count']})")
 
         if abs(offset - old_offset) > 0.001:
             self.params_changed = True
 
-    # ==================== 门槛自动调整 ====================
+    # ==================== 门槛调整 ====================
 
     def _adjust_thresholds(self, win_rate, sample_size, hits, misses):
-        """
-        根据胜率趋势调整筛选门槛
-
-        ★v4.1 核心教训：门槛只升不降是死循环
-        - 胜率低 → 加门槛 → 选的更少 → 样本更差 → 继续加门槛 → 无股可选
-        - 修复：大幅限制门槛上调幅度，调高下调灵敏度
-        - 门槛的意义是过滤噪音，不是弥补模型缺陷
-        """
+        """v5: 门槛调整 — 更保守，避免死循环"""
         old_params = dict(self.PARAMS)
 
-        # === 概率门槛：严格控制上调，宽裕下调 ===
-        # 胜率>40%才能放宽门槛
-        if win_rate > 0.40 and sample_size >= 10:
-            self.PARAMS['min_prob_threshold'] = max(0.40, self.PARAMS['min_prob_threshold'] - 0.01)
-            self.PARAMS['min_next_day_prob'] = max(0.45, self.PARAMS['min_next_day_prob'] - 0.01)
-        # 胜率<15%时微调（最多+0.01，且不超过0.53）
+        # 胜率>35%时放宽门槛
+        if win_rate > 0.35 and sample_size >= 10:
+            self.PARAMS['min_prob_threshold'] = max(0.20, self.PARAMS['min_prob_threshold'] - 0.01)
+        # 胜率<15%时微调涨幅上限（降追涨而不是升概率门槛）
         elif win_rate < 0.15 and sample_size >= 20:
-            self.PARAMS['min_prob_threshold'] = min(0.53, self.PARAMS['min_prob_threshold'] + 0.01)
-            self.PARAMS['min_next_day_prob'] = min(0.55, self.PARAMS['min_next_day_prob'] + 0.01)
-
-        # === 涨幅上限：只在明确证据下才下调 ===
-        if misses and len(misses) >= 5:
-            chase_misses = [r for r in misses if r['recommend_change'] > 3]
-            if len(chase_misses) > len(misses) * 0.5:  # 超过一半的未命中是追涨的
-                self.PARAMS['max_recommend_day_change'] = max(
-                    self.PARAM_BOUNDS['max_recommend_day_change'][0],
-                    self.PARAMS['max_recommend_day_change'] - 0.2
-                )
-
-        # === 技术分门槛：几乎不动 ===
-        # 技术分区分度差不应该靠提高门槛来补救
-        # 这个维度的信号太弱，不如不动
+            self.PARAMS['max_recommend_day_change'] = max(
+                self.PARAM_BOUNDS['max_recommend_day_change'][0],
+                self.PARAMS['max_recommend_day_change'] - 0.2
+            )
 
         # 边界约束
         for key, (lo, hi) in self.PARAM_BOUNDS.items():
             if key in self.PARAMS:
                 self.PARAMS[key] = max(lo, min(hi, self.PARAMS[key]))
 
-        # 检测变化
         for key in self.PARAMS:
             if self.PARAMS[key] != old_params.get(key):
                 self.params_changed = True
                 print(f"  门槛调整: {key} {old_params.get(key)} → {self.PARAMS[key]}")
 
-    # ==================== 权重自适应微调 ====================
+    # ==================== 权重微调 ====================
 
     def _adjust_weights(self, hits, misses, sample_size):
-        """
-        基于各维度对命中/未命中的区分度，微调综合评分权重
-
-        ★v4.1 核心教训：权重调整容易过度
-        - 区分度计算在小样本上极不稳定
-        - 权重每次最多微调0.01，避免大起大落
-        - 必须保证三个权重都在合理范围内
-        """
+        """v5: 简化权重调整"""
         if len(hits) < 3 or len(misses) < 3 or sample_size < 20:
             print("  样本不足，跳过权重调整")
             return
@@ -657,22 +655,19 @@ class StrategyOptimizer:
 
         print(f"  维度区分度: 潜力={gap_potential:+.1f}, 技术={gap_tech:+.1f}, 概率={gap_prob:+.3f}")
 
-        old_weights = {
-            'weight_potential': self.PARAMS['weight_potential'],
-            'weight_tech': self.PARAMS['weight_tech'],
-            'weight_prob': self.PARAMS['weight_prob'],
-        }
+        old_weights = {k: self.PARAMS[k] for k in ['weight_potential', 'weight_tech', 'weight_prob']}
 
-        # 每次最多调整0.01
         max_step = 0.01
 
-        # 区分度为正 → 有效 → 微增权重
-        if gap_prob > 0:
-            self.PARAMS['weight_prob'] = min(0.50, self.PARAMS['weight_prob'] + max_step)
-        if gap_tech > 0:
-            self.PARAMS['weight_tech'] = min(0.60, self.PARAMS['weight_tech'] + max_step)
+        # ★v5: 概率区分度为正时不增加权重（概率是反向指标）
+        # 只有区分度为负时才微调
         if gap_potential > 0:
-            self.PARAMS['weight_potential'] = min(0.30, self.PARAMS['weight_potential'] + max_step)
+            self.PARAMS['weight_potential'] = min(0.50, self.PARAMS['weight_potential'] + max_step)
+        if gap_tech > 0:
+            self.PARAMS['weight_tech'] = min(0.45, self.PARAMS['weight_tech'] + max_step)
+        # ★概率维度：区分度为负（反向指标）→ 保持低权重
+        if gap_prob < 0:
+            self.PARAMS['weight_prob'] = max(0.10, self.PARAMS['weight_prob'] - max_step)
 
         # 归一化
         total_weight = self.PARAMS['weight_potential'] + self.PARAMS['weight_tech'] + self.PARAMS['weight_prob']
@@ -681,12 +676,10 @@ class StrategyOptimizer:
             self.PARAMS['weight_tech'] /= total_weight
             self.PARAMS['weight_prob'] /= total_weight
 
-        # 边界约束
         for key in ['weight_potential', 'weight_tech', 'weight_prob']:
             lo, hi = self.PARAM_BOUNDS[key]
             self.PARAMS[key] = max(lo, min(hi, self.PARAMS[key]))
 
-        # 检测变化
         for key in old_weights:
             if abs(self.PARAMS[key] - old_weights[key]) > 0.001:
                 self.params_changed = True
@@ -695,10 +688,7 @@ class StrategyOptimizer:
     # ==================== 优化主入口 ====================
 
     def optimize(self):
-        """
-        自适应策略优化主入口 v4
-        流程: 概率校准 → 门槛调整 → 权重微调 → 持久化 → 打印报告
-        """
+        """v5简化优化主入口"""
         completed = [r for r in self.history if r.get('result')]
         if len(completed) < 5:
             print("历史数据不足(需>=5)，暂不优化")
@@ -710,31 +700,24 @@ class StrategyOptimizer:
         win_rate = len(hits) / len(completed) if completed else 0
 
         print(f"\n{'='*60}")
-        print(f"🔧 自适应策略优化 v4")
+        print(f"🔧 自适应策略优化 v5")
         print(f"{'='*60}")
         print(f"样本量: {len(completed)} | 命中: {len(hits)} | 胜率: {win_rate:.1%}")
 
-        # 重置变化标记
         self.params_changed = False
 
-        # 1. 概率校准（>=5条样本即可）
-        print("\n[1/3] 概率校准...")
+        print("\n[1/3] 概率校准(v5简化)...")
         self._compute_prob_calibration(completed)
 
-        # 2. 门槛调整（>=5条样本）
-        if len(completed) >= 5:
-            print("\n[2/3] 门槛调整...")
-            self._adjust_thresholds(win_rate, len(completed), hits, misses)
+        print("\n[2/3] 门槛调整...")
+        self._adjust_thresholds(win_rate, len(completed), hits, misses)
 
-        # 3. 权重微调（>=10条样本，命中/未命中各>=3）
         print("\n[3/3] 权重微调...")
         self._adjust_weights(hits, misses, len(completed))
 
-        # 4. 更新元数据
         self.meta['total_reviews'] = len(completed)
         self.meta['last_win_rate'] = round(win_rate, 4)
 
-        # 记录调整历史
         adjustment = {
             'date': datetime.now().strftime('%Y-%m-%d'),
             'win_rate': round(win_rate, 4),
@@ -744,19 +727,15 @@ class StrategyOptimizer:
         }
         history = self.meta.get('adjustment_history', [])
         history.append(adjustment)
-        # 只保留最近20条调整记录
         self.meta['adjustment_history'] = history[-20:]
 
-        # 5. 持久化
         self._save_params()
-
-        # 6. 打印优化报告
         self._print_optimization_report(win_rate, hits, misses, completed)
 
     def _print_optimization_report(self, win_rate, hits, misses, completed):
         """打印优化报告"""
         print(f"\n{'='*60}")
-        print(f"📊 策略优化报告")
+        print(f"📊 策略优化报告 v5")
         print(f"{'='*60}")
 
         if hits:

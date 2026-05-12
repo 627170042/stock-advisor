@@ -85,7 +85,6 @@ def generate_report(budget_pick, strong_pick, optimizer):
   次日概率: {s.get('next_day_prob', 0):.0%}
   综合评分: {s.get('total_score', 0):.1f}{sector_info}
 """
-"""
     else:
         report += "\n  今日未找到符合条件的最强股\n"
     
