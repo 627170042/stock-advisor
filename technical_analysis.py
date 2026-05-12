@@ -96,7 +96,7 @@ def calc_boll(closes, period=20, nbdev=2):
 
 # ==================== 前瞻性分析：次日上涨概率核心模型 ====================
 
-def predict_next_day(kline_data, stock_info=None):
+def predict_next_day(kline_data, stock_info=None, sector_heat=None):
     """
     前瞻性预测次日涨幅2%-5%的概率
     核心逻辑：不是"今天涨了多少"，而是"明天最可能怎么走"
@@ -108,6 +108,7 @@ def predict_next_day(kline_data, stock_info=None):
     4. 关键位置突破 — 刚突破压力位的股票次日有惯性
     5. 筹码承接力 — 均线密集区支撑力度
     6. 动量衰减检测 — 连涨后动量减弱，次日回调概率增大
+       ★v4: 增加板块热度修正 — 热门板块连涨=趋势加速，冷门板块连涨=动量衰减
     """
     if not kline_data or len(kline_data) < 8:
         return {'prob': 0.3, 'signals': [], 'score': 30}
@@ -337,7 +338,9 @@ def predict_next_day(kline_data, stock_info=None):
     
     # =====================================================
     # 维度6: 动量衰减检测 (0-10分, -0.15概率)
-    # 逻辑：连涨过多 = 次日回调概率大，要惩罚！
+    # ★v4: 增加板块热度修正
+    # 热门板块连涨 = 趋势加速（减轻惩罚）
+    # 冷门板块连涨 = 动量衰减（加重惩罚）
     # =====================================================
     decay_score = 0
     
@@ -349,18 +352,61 @@ def predict_next_day(kline_data, stock_info=None):
         else:
             break
     
+    # 获取板块热度信息
+    heat_level = 'warm'
+    heat_score = 50
+    sector_name = ''
+    if sector_heat:
+        heat_level = sector_heat.get('heat_level', 'warm')
+        heat_score = sector_heat.get('heat_score', 50)
+        sector_name = sector_heat.get('sector_name', '')
+    
     if consecutive_up >= 5:
-        prob -= 0.12
-        decay_score -= 8
-        signals.append(f"连涨{consecutive_up}天(动量衰减)")
+        if heat_level == 'hot':
+            # ★热门板块连涨5天 → 可能是趋势加速，大幅减轻惩罚
+            decay_modifier = max(0.1, (100 - heat_score) / 100)
+            prob -= 0.12 * decay_modifier
+            decay_score -= int(8 * decay_modifier)
+            signals.append(f"连涨{consecutive_up}天(🔥{sector_name}热度{heat_score},趋势加速)")
+        elif heat_level == 'cold':
+            # ★冷门板块连涨5天 → 动量衰减更严重
+            prob -= 0.18
+            decay_score -= 12
+            signals.append(f"连涨{consecutive_up}天(冷门板块{sector_name},动量衰减严重)")
+        else:
+            # 温热板块：维持原始惩罚
+            prob -= 0.12
+            decay_score -= 8
+            signals.append(f"连涨{consecutive_up}天(动量衰减)")
     elif consecutive_up >= 4:
-        prob -= 0.06
-        decay_score -= 4
-        signals.append(f"连涨{consecutive_up}天(注意回调)")
+        if heat_level == 'hot':
+            decay_modifier = max(0.3, (100 - heat_score) / 100)
+            prob -= 0.06 * decay_modifier
+            decay_score -= int(4 * decay_modifier)
+            signals.append(f"连涨{consecutive_up}天(🔥{sector_name}热度{heat_score},趋势延续)")
+        elif heat_level == 'cold':
+            prob -= 0.10
+            decay_score -= 6
+            signals.append(f"连涨{consecutive_up}天(冷门板块{sector_name},注意回调)")
+        else:
+            prob -= 0.06
+            decay_score -= 4
+            signals.append(f"连涨{consecutive_up}天(注意回调)")
+    elif consecutive_up >= 3:
+        if heat_level == 'hot':
+            # 热门板块3连涨，轻惩罚甚至不罚
+            prob -= 0.02
+            signals.append(f"连涨3天(🔥{sector_name}热度{heat_score},趋势中)")
+        else:
+            signals.append(f"连涨3天")
     elif consecutive_up == 1:
         prob += 0.03
         decay_score += 3
-        signals.append("刚启动(动量充沛)")
+        if heat_level == 'hot':
+            prob += 0.02  # 热门板块刚启动，额外加分
+            signals.append(f"刚启动(🔥{sector_name}趋势起步)")
+        else:
+            signals.append("刚启动(动量充沛)")
     elif consecutive_up == 2:
         prob += 0.02
         decay_score += 2

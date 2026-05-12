@@ -14,6 +14,22 @@ from technical_analysis import calc_ma, calc_rsi, calc_kdj
 DATA_DIR = os.environ.get('DATA_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data'))
 
 
+def _format_sector_info(stock):
+    """格式化板块热度信息"""
+    sector_heat = stock.get('sector_heat')
+    if not sector_heat:
+        return ''
+    level = sector_heat.get('heat_level', 'warm')
+    name = sector_heat.get('sector_name', '')
+    score = sector_heat.get('heat_score', 50)
+    if level == 'hot':
+        return f'\n  板块热度: 🔥 {name}({score}分/热门)'
+    elif level == 'cold':
+        return f'\n  板块热度: ❄️ {name}({score}分/冷门)'
+    else:
+        return f'\n  板块热度: 📊 {name}({score}分/温热)'
+
+
 def generate_report(budget_pick, strong_pick, optimizer):
     """生成推荐报告"""
     today = datetime.now().strftime('%Y-%m-%d')
@@ -38,6 +54,7 @@ def generate_report(budget_pick, strong_pick, optimizer):
     
     if budget_pick:
         s = budget_pick
+        sector_info = _format_sector_info(s)
         report += f"""
   代码: {s['symbol']}  名称: {s['name']}
   当前价格: {s['trade']:.2f} 元
@@ -45,7 +62,7 @@ def generate_report(budget_pick, strong_pick, optimizer):
   换手率: {s['turnoverratio']:.2f}%
   技术评分: {s.get('tech_score', 'N/A')}
   次日概率: {s.get('next_day_prob', 0):.0%}
-  综合评分: {s.get('total_score', 0):.1f}
+  综合评分: {s.get('total_score', 0):.1f}{sector_info}
 """
     else:
         report += "\n  今日未找到符合条件的低价股\n"
@@ -58,6 +75,7 @@ def generate_report(budget_pick, strong_pick, optimizer):
     
     if strong_pick:
         s = strong_pick
+        sector_info = _format_sector_info(s)
         report += f"""
   代码: {s['symbol']}  名称: {s['name']}
   当前价格: {s['trade']:.2f} 元
@@ -65,7 +83,8 @@ def generate_report(budget_pick, strong_pick, optimizer):
   换手率: {s['turnoverratio']:.2f}%
   技术评分: {s.get('tech_score', 'N/A')}
   次日概率: {s.get('next_day_prob', 0):.0%}
-  综合评分: {s.get('total_score', 0):.1f}
+  综合评分: {s.get('total_score', 0):.1f}{sector_info}
+"""
 """
     else:
         report += "\n  今日未找到符合条件的最强股\n"
@@ -149,6 +168,7 @@ def run_daily_recommendation():
             'total_score': budget_pick.get('total_score'),
             'next_day_prob': budget_pick.get('next_day_prob'),
             'signals': budget_pick.get('signals', []),
+            'sector_heat': budget_pick.get('sector_heat'),
         } if budget_pick else None,
         'strong': {
             'symbol': strong_pick['symbol'],
@@ -159,6 +179,7 @@ def run_daily_recommendation():
             'total_score': strong_pick.get('total_score'),
             'next_day_prob': strong_pick.get('next_day_prob'),
             'signals': strong_pick.get('signals', []),
+            'sector_heat': strong_pick.get('sector_heat'),
         } if strong_pick else None,
     }
     

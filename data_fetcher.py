@@ -222,3 +222,83 @@ def is_gem(code):
 
 def is_star(code):
     return classify_board(code) == 'star'
+
+
+# ==================== 板块行情数据（东方财富） ====================
+
+EM_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Referer': 'https://data.eastmoney.com'
+}
+
+
+def get_concept_sectors(page=1, num=500):
+    """
+    获取东方财富概念板块行情数据
+    返回: [{code, name, change_pct, up_count, down_count, lead_stock, lead_change}, ...]
+    """
+    url = 'https://push2.eastmoney.com/api/qt/clist/get'
+    params = {
+        'cb': 'jQuery',
+        'pn': page,
+        'pz': num,
+        'po': '1',
+        'np': '1',
+        'ut': 'bd1d9ddb04089700cf9c27f6f7426281',
+        'fltt': '2',
+        'invt': '2',
+        'fid': 'f3',
+        'fs': 'm:90+t:2',
+        'fields': 'f2,f3,f4,f12,f14,f104,f105,f128,f140,f136',
+    }
+    try:
+        r = requests.get(url, params=params, headers=EM_HEADERS, timeout=15)
+        # 去除JSONP回调
+        text = re.sub(r'^jQuery\(', '', r.text)
+        text = re.sub(r'\)$', '', text)
+        data = json.loads(text)
+        items = data.get('data', {}).get('diff', [])
+        results = []
+        for item in items:
+            try:
+                results.append({
+                    'code': item.get('f12', ''),
+                    'name': item.get('f14', ''),
+                    'change_pct': float(item.get('f3', 0) or 0),
+                    'up_count': int(item.get('f104', 0) or 0),
+                    'down_count': int(item.get('f105', 0) or 0),
+                    'lead_stock': item.get('f128', ''),
+                    'lead_change': float(item.get('f136', 0) or 0),
+                })
+            except (ValueError, TypeError):
+                continue
+        return results
+    except Exception as e:
+        print(f"板块数据获取失败: {e}")
+        return []
+
+
+def get_stock_industry_f10(code):
+    """
+    通过东方财富F10接口获取个股行业分类(EM2016格式)
+    code: sh600519 或 sz000001
+    返回: "电力设备-光伏设备-逆变器" 或 None
+    """
+    # 转换代码格式: sh600519 → SH600519
+    em_code = code.upper()
+    url = f'https://emweb.securities.eastmoney.com/PC_HSF10/CompanySurvey/PageAjax?code={em_code}'
+    try:
+        r = requests.get(url, headers=EM_HEADERS, timeout=10)
+        data = r.json()
+        # 从F10数据中提取EM2016行业分类
+        industry = data.get('sshy', '')
+        if not industry:
+            # 尝试其他字段
+            hy = data.get('hy', {})
+            if isinstance(hy, list) and hy:
+                industry = hy[0].get('EM2016', '') or hy[0].get('INDUSTRYCSRC1', '')
+            elif isinstance(hy, dict):
+                industry = hy.get('EM2016', '') or hy.get('INDUSTRYCSRC1', '')
+        return industry if industry else None
+    except Exception as e:
+        return None

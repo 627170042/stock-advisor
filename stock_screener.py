@@ -112,10 +112,11 @@ def filter_recent_recommendations(stock, history_file, blacklist_days=5):
 
 # ==================== 次日上涨潜力评分 v4 ====================
 
-def score_next_day_potential(stock):
+def score_next_day_potential(stock, sector_heat=None):
     """
     v4: 基于历史复盘优化权重
     核心变化: 加大当日涨幅区间的区分度，降低追涨股评分
+    ★v4新增: 板块热度评分维度
     """
     score = 50
     change_pct = stock.get('changepercent', 0)
@@ -159,6 +160,17 @@ def score_next_day_potential(stock):
             score += 5
         elif nmc_yi < 20:
             score -= 3  # 小盘股波动大，扣分
+
+    # === ★v4新增: 板块热度评分 (0-15分) ===
+    if sector_heat:
+        heat_score = sector_heat.get('heat_score', 50)
+        heat_level = sector_heat.get('heat_level', 'warm')
+        if heat_level == 'hot':
+            score += 15  # 热门板块加分
+        elif heat_level == 'warm':
+            score += 5   # 温热板块小加分
+        else:
+            score -= 5   # 冷门板块扣分
 
     return max(0, min(100, score))
 
@@ -225,6 +237,14 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None, p
         all_stocks = build_candidate_pool()
 
     # 第二步：基础过滤 + 追涨过滤 + 重复推荐过滤 + 预评分
+    # 加载板块热度数据
+    from sector_heat import SectorHeatMap
+    sector_map = SectorHeatMap()
+    try:
+        sector_map.fetch_sector_heat_data()
+    except Exception as e:
+        print(f"  ⚠️ 板块热度数据获取失败: {e}")
+
     print("[2/4] 多层过滤...")
     candidates = []
     filter_stats = {'basic': 0, 'liquidity': 0, 'chase': 0, 'repeat': 0}
@@ -252,7 +272,12 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None, p
             filter_stats['repeat'] += 1
             continue
 
-        potential_score = score_next_day_potential(stock)
+        # 获取板块热度
+        from sector_heat import get_sector_heat_for_stock
+        stock_sector_heat = get_sector_heat_for_stock(symbol, stock.get('name', ''), sector_map)
+        stock['sector_heat'] = stock_sector_heat
+
+        potential_score = score_next_day_potential(stock, sector_heat=stock_sector_heat)
         stock['potential_score'] = potential_score
         candidates.append(stock)
 
@@ -274,7 +299,10 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None, p
             if not kline or len(kline) < 8:
                 continue
 
-            prediction = predict_next_day(kline, stock)
+            # 获取板块热度（复用已缓存的映射结果）
+            stock_sector_heat = stock.get('sector_heat')
+
+            prediction = predict_next_day(kline, stock, sector_heat=stock_sector_heat)
 
             closes = [k['close'] for k in kline]
             ma5 = calc_ma(closes, 5)
@@ -310,11 +338,17 @@ def screen_stocks(category='budget', max_candidates=15, preloaded_stocks=None, p
 
             scored_candidates.append(stock)
 
+            # 显示板块热度
+            sector_str = ''
+            if stock_sector_heat:
+                heat_emoji = '🔥' if stock_sector_heat['heat_level'] == 'hot' else ('❄️' if stock_sector_heat['heat_level'] == 'cold' else '📊')
+                sector_str = f" {heat_emoji}{stock_sector_heat['sector_name']}({stock_sector_heat['heat_score']}分)"
+
             top_signals = prediction['signals'][:3]
             signal_str = ' | '.join(top_signals) if top_signals else '—'
             print(f"  [{i+1}/{analyze_count}] {symbol} {stock['name']} "
                   f"潜力={stock['potential_score']} 技术={prediction['score']} "
-                  f"概率={prediction['prob']:.0%} 综合={stock['total_score']:.1f}")
+                  f"概率={prediction['prob']:.0%} 综合={stock['total_score']:.1f}{sector_str}")
             print(f"    信号: {signal_str}")
 
             time.sleep(0.2)

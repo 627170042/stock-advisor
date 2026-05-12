@@ -111,6 +111,11 @@ def format_recommend_message():
 > 次日概率: <font color="warning">{budget.get('next_day_prob', 0):.0%}</font>
 > 综合评分: **{budget.get('total_score', 0):.1f}**
 """
+        # 板块热度
+        sh = budget.get('sector_heat')
+        if sh and sh.get('sector_name', '') != '未知':
+            heat_icon = '🔥' if sh['heat_level'] == 'hot' else ('❄️' if sh['heat_level'] == 'cold' else '📊')
+            content += f"> 板块: {heat_icon} {sh['sector_name']}({sh['heat_score']}分)\n"
         if signals_str:
             content += f"> 关键信号: {signals_str}\n"
     else:
@@ -130,6 +135,11 @@ def format_recommend_message():
 > 次日概率: <font color="warning">{strong.get('next_day_prob', 0):.0%}</font>
 > 综合评分: **{strong.get('total_score', 0):.1f}**
 """
+        # 板块热度
+        sh = strong.get('sector_heat')
+        if sh and sh.get('sector_name', '') != '未知':
+            heat_icon = '🔥' if sh['heat_level'] == 'hot' else ('❄️' if sh['heat_level'] == 'cold' else '📊')
+            content += f"> 板块: {heat_icon} {sh['sector_name']}({sh['heat_score']}分)\n"
         if signals_str:
             content += f"> 关键信号: {signals_str}\n"
     else:
