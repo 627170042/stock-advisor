@@ -486,14 +486,11 @@ class StrategyOptimizer:
     def _compute_prob_calibration(self, completed):
         """
         基于历史数据计算概率校准参数
-        两种模式：
-        1. 全局偏移（默认）：offset = avg(actual) - avg(predicted)
-        2. 分桶校准（样本>=5/桶时）：桶内实际胜率与预测做加权融合
 
-        ★关键防过度拟合：
-        - 全局偏移上限收紧：最多-0.15（不管样本多少）
-        - 分桶校准不直接替换，而是与预测值做7:3融合
-        - 分桶结果保底不低于0.15
+        ★v4.1 核心教训：校准是为了修正偏差，不是为了把所有股票都杀掉
+        - 偏移上限收紧到0.10
+        - 分桶校准使用融合值，保底0.20
+        - 每次从原始数据重新计算，不做累积偏移
         """
         if len(completed) < 5:
             print("  样本<5，跳过概率校准")
@@ -505,38 +502,36 @@ class StrategyOptimizer:
         avg_predicted = sum(predicted_probs) / len(predicted_probs)
         avg_actual = sum(actual_hits) / len(actual_hits)
 
-        # 全局偏移
+        # 全局偏移：从原始数据算，不累积
         offset = avg_actual - avg_predicted
 
-        # ★防过度拟合: 偏移上限收紧到0.15
-        # 之前0.35太激进，32条样本就-0.35，直接把所有股票概率归零
-        max_offset = min(0.15, 0.05 + len(completed) * 0.003)
-        # 只允许向下校准（概率虚高时修正，不虚增概率）
+        # ★偏移上限收紧到0.10，不管样本多少
+        # 逻辑：0.10的偏移已经足够表达"模型偏乐观"
+        # 更大的偏移只会杀死所有股票，无法提供有用信号
+        max_offset = min(0.10, 0.03 + len(completed) * 0.002)
         offset = max(-max_offset, min(0, offset))
 
-        # 分桶校准（★不直接替换，做融合）
+        # 分桶校准（融合而非替换）
         buckets = {}
         bucket_ranges = [(0.50, 0.60), (0.60, 0.70), (0.70, 0.80), (0.80, 0.90)]
         for low, high in bucket_ranges:
             bucket_records = [r for r in completed if low <= r.get('next_day_prob', 0) < high]
-            # 样本>=5才启用分桶校准
             if len(bucket_records) >= 5:
                 bucket_hits = sum(1 for r in bucket_records if r['result']['hit'])
                 actual_rate = bucket_hits / len(bucket_records)
                 predicted_avg = sum(r.get('next_day_prob', 0) for r in bucket_records) / len(bucket_records)
 
-                # ★融合而非替换：实际胜率*0.7 + 预测值*0.3
-                # 避免0%实际胜率直接把整个桶判死
-                fused_rate = actual_rate * 0.7 + predicted_avg * 0.3
-                # 保底不低于0.15（即使实际0%也保留15%的可能性）
-                fused_rate = max(0.15, fused_rate)
+                # 融合：实际胜率*0.5 + 预测值*0.5（更保守的融合比例）
+                fused_rate = actual_rate * 0.5 + predicted_avg * 0.5
+                # 保底不低于0.20
+                fused_rate = max(0.20, fused_rate)
 
                 bucket_key = f"{low:.2f}-{high:.2f}"
                 buckets[bucket_key] = {
                     'count': len(bucket_records),
                     'predicted_avg': round(predicted_avg, 4),
                     'actual_win_rate': round(actual_rate, 4),
-                    'fused_rate': round(fused_rate, 4),  # ★融合后的校准值
+                    'fused_rate': round(fused_rate, 4),
                 }
 
         old_offset = self.prob_calibration.get('offset', 0.0)
@@ -560,51 +555,37 @@ class StrategyOptimizer:
 
     def _adjust_thresholds(self, win_rate, sample_size, hits, misses):
         """
-        根据胜率趋势自动调整筛选门槛
-        防过度拟合: 步长与样本量反相关
+        根据胜率趋势调整筛选门槛
+
+        ★v4.1 核心教训：门槛只升不降是死循环
+        - 胜率低 → 加门槛 → 选的更少 → 样本更差 → 继续加门槛 → 无股可选
+        - 修复：大幅限制门槛上调幅度，调高下调灵敏度
+        - 门槛的意义是过滤噪音，不是弥补模型缺陷
         """
-        # 调整步长
-        step = min(0.03, 0.01 + sample_size * 0.001)
-
-        # 10-20条样本时步长减半
-        if sample_size < 20:
-            step *= 0.5
-
         old_params = dict(self.PARAMS)
 
-        # === 概率门槛 ===
-        if win_rate < 0.15:
-            self.PARAMS['min_next_day_prob'] = min(0.70, self.PARAMS['min_next_day_prob'] + step * 1.5)
-            self.PARAMS['min_prob_threshold'] = min(0.65, self.PARAMS['min_prob_threshold'] + step * 1.5)
-        elif win_rate < 0.25:
-            self.PARAMS['min_next_day_prob'] = min(0.70, self.PARAMS['min_next_day_prob'] + step)
-            self.PARAMS['min_prob_threshold'] = min(0.65, self.PARAMS['min_prob_threshold'] + step)
-        elif win_rate < 0.35:
-            self.PARAMS['min_next_day_prob'] = min(0.65, self.PARAMS['min_next_day_prob'] + step * 0.5)
-        elif win_rate > 0.50:
-            # 胜率较高时，可适当放宽
-            self.PARAMS['min_next_day_prob'] = max(0.45, self.PARAMS['min_next_day_prob'] - step * 0.3)
-            self.PARAMS['min_prob_threshold'] = max(0.40, self.PARAMS['min_prob_threshold'] - step * 0.2)
+        # === 概率门槛：严格控制上调，宽裕下调 ===
+        # 胜率>40%才能放宽门槛
+        if win_rate > 0.40 and sample_size >= 10:
+            self.PARAMS['min_prob_threshold'] = max(0.40, self.PARAMS['min_prob_threshold'] - 0.01)
+            self.PARAMS['min_next_day_prob'] = max(0.45, self.PARAMS['min_next_day_prob'] - 0.01)
+        # 胜率<15%时微调（最多+0.01，且不超过0.53）
+        elif win_rate < 0.15 and sample_size >= 20:
+            self.PARAMS['min_prob_threshold'] = min(0.53, self.PARAMS['min_prob_threshold'] + 0.01)
+            self.PARAMS['min_next_day_prob'] = min(0.55, self.PARAMS['min_next_day_prob'] + 0.01)
 
-        # === 涨幅上限 ===
-        if misses:
-            avg_change_miss = sum(r['recommend_change'] for r in misses) / len(misses)
-            if avg_change_miss > 2.0:
+        # === 涨幅上限：只在明确证据下才下调 ===
+        if misses and len(misses) >= 5:
+            chase_misses = [r for r in misses if r['recommend_change'] > 3]
+            if len(chase_misses) > len(misses) * 0.5:  # 超过一半的未命中是追涨的
                 self.PARAMS['max_recommend_day_change'] = max(
                     self.PARAM_BOUNDS['max_recommend_day_change'][0],
-                    self.PARAMS['max_recommend_day_change'] - 0.3
+                    self.PARAMS['max_recommend_day_change'] - 0.2
                 )
 
-        # === 技术分门槛 ===
-        if hits and misses:
-            avg_tech_hit = sum(r.get('tech_score', 0) for r in hits) / len(hits)
-            avg_tech_miss = sum(r.get('tech_score', 0) for r in misses) / len(misses)
-            # 命中组技术分低于未命中组 → 技术分区分度差 → 提高门槛
-            if avg_tech_hit - avg_tech_miss < 5:
-                self.PARAMS['min_tech_score'] = min(
-                    self.PARAM_BOUNDS['min_tech_score'][1],
-                    self.PARAMS['min_tech_score'] + 2
-                )
+        # === 技术分门槛：几乎不动 ===
+        # 技术分区分度差不应该靠提高门槛来补救
+        # 这个维度的信号太弱，不如不动
 
         # 边界约束
         for key, (lo, hi) in self.PARAM_BOUNDS.items():
@@ -622,18 +603,16 @@ class StrategyOptimizer:
     def _adjust_weights(self, hits, misses, sample_size):
         """
         基于各维度对命中/未命中的区分度，微调综合评分权重
-        区分度越大 → 该维度越有效 → 增加权重
+
+        ★v4.1 核心教训：权重调整容易过度
+        - 区分度计算在小样本上极不稳定
+        - 权重每次最多微调0.01，避免大起大落
+        - 必须保证三个权重都在合理范围内
         """
-        if len(hits) < 3 or len(misses) < 3 or sample_size < 10:
+        if len(hits) < 3 or len(misses) < 3 or sample_size < 20:
             print("  样本不足，跳过权重调整")
             return
 
-        # 样本<20时步长减半
-        weight_step = min(0.03, 0.01 + sample_size * 0.001)
-        if sample_size < 20:
-            weight_step *= 0.5
-
-        # 计算各维度区分度
         def safe_avg(lst, key):
             vals = [r.get(key, 0) for r in lst]
             return sum(vals) / len(vals) if vals else 0
@@ -644,30 +623,24 @@ class StrategyOptimizer:
 
         print(f"  维度区分度: 潜力={gap_potential:+.1f}, 技术={gap_tech:+.1f}, 概率={gap_prob:+.3f}")
 
-        # 区分度为正 → 该维度有效 → 增加权重
-        # 区分度为负 → 该维度反效果 → 减少权重
         old_weights = {
             'weight_potential': self.PARAMS['weight_potential'],
             'weight_tech': self.PARAMS['weight_tech'],
             'weight_prob': self.PARAMS['weight_prob'],
         }
 
-        deltas = {}
-        total_gap = abs(gap_potential) + abs(gap_tech) + abs(gap_prob * 100)
-        if total_gap > 0:
-            # 按区分度比例分配权重增量
-            deltas['weight_potential'] = (gap_potential / total_gap) * weight_step * 10
-            deltas['weight_tech'] = (gap_tech / total_gap) * weight_step * 10
-            deltas['weight_prob'] = (gap_prob * 100 / total_gap) * weight_step * 10
-        else:
-            deltas = {k: 0 for k in old_weights}
+        # 每次最多调整0.01
+        max_step = 0.01
 
-        # 应用调整
-        self.PARAMS['weight_potential'] += deltas.get('weight_potential', 0)
-        self.PARAMS['weight_tech'] += deltas.get('weight_tech', 0)
-        self.PARAMS['weight_prob'] += deltas.get('weight_prob', 0)
+        # 区分度为正 → 有效 → 微增权重
+        if gap_prob > 0:
+            self.PARAMS['weight_prob'] = min(0.50, self.PARAMS['weight_prob'] + max_step)
+        if gap_tech > 0:
+            self.PARAMS['weight_tech'] = min(0.60, self.PARAMS['weight_tech'] + max_step)
+        if gap_potential > 0:
+            self.PARAMS['weight_potential'] = min(0.30, self.PARAMS['weight_potential'] + max_step)
 
-        # 归一化：确保权重之和为1
+        # 归一化
         total_weight = self.PARAMS['weight_potential'] + self.PARAMS['weight_tech'] + self.PARAMS['weight_prob']
         if total_weight > 0:
             self.PARAMS['weight_potential'] /= total_weight

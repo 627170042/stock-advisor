@@ -477,8 +477,8 @@ def calibrate_probability(raw_prob, calibration=None):
     2. 退化为全局偏移校准
     3. 无校准数据时原值返回
 
-    防护: 结果始终裁剪到 [0.15, 0.90]
-    ★保底0.15: 不因历史0%胜率就完全否定一个概率区间
+    防护: 结果始终裁剪到 [0.20, 0.90]
+    ★保底0.20: 不因历史0%胜率就完全否定一个概率区间
     """
     if calibration is None:
         calibration = load_calibration()
@@ -494,13 +494,13 @@ def calibrate_probability(raw_prob, calibration=None):
                 if sample_count >= 5:  # 样本量>=5才用分桶校准
                     # ★使用融合值而非直接替换
                     calibrated = bucket_data.get('fused_rate', bucket_data.get('actual_win_rate', raw_prob))
-                    return max(0.15, min(0.90, calibrated))
+                    return max(0.20, min(0.90, calibrated))
 
     # 退化为全局偏移
     offset = calibration.get('offset', 0.0)
     if offset != 0.0:
         calibrated = raw_prob + offset
-        return max(0.15, min(0.90, calibrated))
+        return max(0.20, min(0.90, calibrated))
 
     # 无校准数据，原值返回
     return raw_prob
