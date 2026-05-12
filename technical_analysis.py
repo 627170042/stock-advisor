@@ -399,16 +399,20 @@ def predict_next_day(kline_data, stock_info=None, sector_heat=None):
         else:
             break
     
-    if consecutive_up >= 4:
+    if consecutive_up >= 5:
+        if heat_level == 'hot':
+            prob -= 0.05  # 热门板块5连涨，趋势延续但需谨慎
+            signals.append(f"5连涨(🔥趋势延续但需谨慎)")
+        else:
+            prob -= 0.15
+            signals.append(f"5连涨(⚠️回调风险高)")
+    elif consecutive_up >= 4:
         if heat_level == 'hot':
             prob -= 0.03  # 热门板块4连涨，小幅回调风险
             signals.append(f"4连涨(🔥趋势延续但需谨慎)")
         else:
             prob -= 0.10  # 非热门板块4连涨，回调风险大
             signals.append(f"4连涨(⚠️动量衰减)")
-    elif consecutive_up >= 5:
-        prob -= 0.15
-        signals.append(f"5连涨(⚠️回调风险高)")
     
     # =====================================================
     # 最终概率归一化

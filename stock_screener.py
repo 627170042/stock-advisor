@@ -82,12 +82,13 @@ def filter_death_zone(stock):
     """
     ★v5新增: 微涨死亡区间过滤
     数据: 推荐日涨0~2%的8只股票全部未命中！
-    策略: 直接过滤掉当日微涨0.5%~2%的股票（最危险区间）
+    策略: 过滤掉当日微涨0.5%~1.5%的股票（最危险区间）
+    1.5~3.5%的股票不直接过滤，而是在评分中降权
+    热门板块微涨可以放行
     """
     change_pct = stock.get('changepercent', 0)
-    if 0.5 <= change_pct < 2.0:
-        # 这是一个很危险的区间，但不是100%必死
-        # 如果板块热度高，可以放行
+    if 0.5 <= change_pct < 1.5:
+        # 最危险的窄区间
         sector_heat = stock.get('sector_heat')
         if sector_heat and sector_heat.get('heat_level') == 'hot':
             return True, "热门板块微涨(放行)"
