@@ -65,12 +65,12 @@ def filter_liquidity(stock):
     return True, "通过"
 
 
-def filter_chase_risk(stock, max_change=3.0):
+def filter_chase_risk(stock, max_change=3.5):
     """
     ★v5强化: 追涨风险过滤
     数据铁证: 推荐日涨0~2%的股票次日胜率0%！
-    v4: max_change=4.0 → v5: max_change=3.0（更严格）
-    新增: 0~2%微涨区间也需要警惕（不硬过滤但大降权）
+    v4: max_change=4.0 → v5: max_change=3.5
+    新增: 0~2%微涨区间由filter_death_zone单独处理
     """
     change_pct = stock.get('changepercent', 0)
     if change_pct > max_change:
@@ -455,7 +455,7 @@ class StrategyOptimizer:
         'weight_potential': 0.40,        # ★潜力分权重最大
         'weight_tech': 0.35,            # 技术分第二
         'weight_prob': 0.25,            # ★概率分权重最低（反向指标）
-        'max_recommend_day_change': 3.0, # ★收紧追涨上限（4.0→3.0）
+        'max_recommend_day_change': 3.5, # ★收紧追涨上限（4.0→3.5）
         'min_prob_threshold': 0.30,      # ★大幅降低概率门槛
         'repeat_blacklist_days': 7,      # 延长黑名单天数
     }
