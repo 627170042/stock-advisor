@@ -23,13 +23,14 @@ def review_previous_recommendations():
     # 找出未复盘的推荐（排除今日刚推荐的，需要次日才有数据）
     pending = [r for r in history if r.get('result') is None and r['date'] < today]
     
-    if not pending:
-        print("所有推荐已复盘")
-        return
+    newly_reviewed = 0  # 本轮新复盘的数量
     
-    print(f"\n{'='*60}")
-    print(f"📋 复盘分析 - {today}")
-    print(f"{'='*60}")
+    if not pending:
+        print("所有推荐已复盘，检查是否需要推送已完成的复盘结果...")
+    else:
+        print(f"\n{'='*60}")
+        print(f"📋 复盘分析 - {today}")
+        print(f"{'='*60}")
     
     for rec in pending:
         symbol = rec['symbol']
@@ -39,6 +40,7 @@ def review_previous_recommendations():
         
         print(f"\n🔍 {symbol} {rec['name']} ({category})")
         print(f"   推荐日期: {rec_date} | 推荐价: {rec_price:.2f}")
+        newly_reviewed += 1
         
         try:
             # 获取推荐日次日K线数据
@@ -155,8 +157,12 @@ def review_previous_recommendations():
         from wechat_push import push_optimization_notice
         push_optimization_notice(optimizer)
 
-    # 微信推送复盘
-    print("\n📱 推送复盘到企业微信...")
+    # 微信推送复盘（始终推送，即使本轮无新复盘）
+    # 用户期望每日收到复盘推送，已完成的复盘结果也需要告知
+    if newly_reviewed > 0:
+        print(f"\n📱 本轮新复盘 {newly_reviewed} 只，推送复盘到企业微信...")
+    else:
+        print("\n📱 本轮无新复盘，但推送最近复盘结果到企业微信（确保用户收到每日复盘通知）...")
     from wechat_push import push_review
     push_review()
 
