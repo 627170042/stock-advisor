@@ -414,7 +414,14 @@
       "KDJ超买区(谨慎)",
       "J值超100(极度超买)"
     ],
-    "result": null
+    "result": {
+      "next_day_open": 24.69,
+      "next_day_high": 25.33,
+      "next_day_close": 25.21,
+      "next_day_change": -0.87,
+      "hit": false,
+      "max_profit": -0.87
+    }
   },
   {
     "date": "2026-04-21",
@@ -440,6 +447,1131 @@
       "J值超100(极度超买)",
       "RSI=44(偏多区间)"
     ],
+    "result": {
+      "next_day_open": 25.88,
+      "next_day_high": 26.37,
+      "next_day_close": 26.23,
+      "next_day_change": 0.54,
+      "hit": false,
+      "max_profit": 0.54
+    }
+  },
+  {
+    "date": "2026-04-22",
+    "symbol": "sh601899",
+    "name": "紫金矿业",
+    "category": "budget",
+    "recommend_price": 35.48,
+    "recommend_change": -0.505,
+    "tech_score": 65,
+    "next_day_prob": 0.7400000000000001,
+    "total_score": 68.95,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "微跌蓄势",
+      "量价尚可",
+      "突破5日高点",
+      "KDJ金叉未超买"
+    ],
+    "result": {
+      "next_day_open": 35.56,
+      "next_day_high": 35.56,
+      "next_day_close": 34.4,
+      "next_day_change": -3.04,
+      "hit": false,
+      "max_profit": -3.04
+    }
+  },
+  {
+    "date": "2026-04-22",
+    "symbol": "sz300014",
+    "name": "亿纬锂能",
+    "category": "strong",
+    "recommend_price": 71.7,
+    "recommend_change": -0.389,
+    "tech_score": 75,
+    "next_day_prob": 0.69,
+    "total_score": 73.7,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "缩量回调(主力未出)",
+      "微跌蓄势",
+      "量价健康(涨放量跌缩量)",
+      "缩量后放量上攻(强烈信号)",
+      "KDJ超买区(谨慎)",
+      "刚启动(动量充沛)"
+    ],
+    "result": {
+      "next_day_open": 71.99,
+      "next_day_high": 72.9,
+      "next_day_close": 71.87,
+      "next_day_change": 0.24,
+      "hit": false,
+      "max_profit": 0.24
+    }
+  },
+  {
+    "date": "2026-04-29",
+    "symbol": "sz000967",
+    "name": "盈峰环境",
+    "category": "budget",
+    "recommend_price": 14.59,
+    "recommend_change": 2.891,
+    "tech_score": 74,
+    "next_day_prob": 0.72,
+    "total_score": 73.15,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "缩量回调(主力未出)",
+      "适度上涨",
+      "量价尚可",
+      "缩量后放量上攻(强烈信号)",
+      "突破5日高点",
+      "RSI=81(超买)",
+      "刚启动(动量充沛)"
+    ],
+    "result": {
+      "next_day_open": 14.23,
+      "next_day_high": 14.34,
+      "next_day_close": 14.02,
+      "next_day_change": -3.91,
+      "hit": false,
+      "max_profit": -3.91
+    }
+  },
+  {
+    "date": "2026-04-29",
+    "symbol": "sz301396",
+    "name": "宏景科技",
+    "category": "strong",
+    "recommend_price": 332.0,
+    "recommend_change": -1.188,
+    "tech_score": 80,
+    "next_day_prob": 0.72,
+    "total_score": 76.85,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "缩量回调(主力未出)",
+      "微跌蓄势",
+      "量价健康(涨放量跌缩量)",
+      "缩量后放量上攻(强烈信号)",
+      "突破5日高点",
+      "RSI=81(超买)",
+      "刚启动(动量充沛)"
+    ],
+    "result": {
+      "next_day_open": 322.99,
+      "next_day_high": 326.64,
+      "next_day_close": 323.06,
+      "next_day_change": -2.69,
+      "hit": false,
+      "max_profit": -2.69
+    }
+  },
+  {
+    "date": "2026-04-29",
+    "symbol": "sh600176",
+    "name": "中国巨石",
+    "category": "budget",
+    "recommend_price": 35.75,
+    "recommend_change": 3.623,
+    "tech_score": 56,
+    "next_day_prob": 0.6700000000000002,
+    "total_score": 61.55000000000001,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "量价尚可",
+      "突破5日高点",
+      "KDJ金叉未超买"
+    ],
+    "result": {
+      "next_day_open": 35.65,
+      "next_day_high": 35.67,
+      "next_day_close": 34.83,
+      "next_day_change": -2.57,
+      "hit": false,
+      "max_profit": -2.57
+    }
+  },
+  {
+    "date": "2026-04-29",
+    "symbol": "sh603259",
+    "name": "药明康德",
+    "category": "strong",
+    "recommend_price": 111.1,
+    "recommend_change": 0.479,
+    "tech_score": 71,
+    "next_day_prob": 0.84,
+    "total_score": 75.65,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "温和启动",
+      "量价尚可",
+      "突破20日线",
+      "突破5日高点",
+      "KDJ金叉未超买",
+      "RSI=63(偏多区间)"
+    ],
+    "result": {
+      "next_day_open": 110.0,
+      "next_day_high": 111.01,
+      "next_day_close": 109.01,
+      "next_day_change": -1.88,
+      "hit": false,
+      "max_profit": -1.88
+    }
+  },
+  {
+    "date": "2026-04-29",
+    "symbol": "sz000938",
+    "name": "紫光股份",
+    "category": "budget",
+    "recommend_price": 32.42,
+    "recommend_change": 2.66,
+    "tech_score": 67,
+    "next_day_prob": 0.6500000000000001,
+    "total_score": 65.9,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "缩量回调(主力未出)",
+      "适度上涨",
+      "量价健康(涨放量跌缩量)",
+      "缩量后放量上攻(强烈信号)",
+      "突破5日高点",
+      "KDJ超买区(谨慎)",
+      "RSI=76(超买)",
+      "刚启动(动量充沛)"
+    ],
+    "result": {
+      "next_day_open": 32.66,
+      "next_day_high": 32.76,
+      "next_day_close": 31.31,
+      "next_day_change": -3.42,
+      "hit": false,
+      "max_profit": -3.42
+    }
+  },
+  {
+    "date": "2026-04-30",
+    "symbol": "sz000792",
+    "name": "盐湖股份",
+    "category": "budget",
+    "recommend_price": 39.16,
+    "recommend_change": -0.861,
+    "tech_score": 72,
+    "next_day_prob": 0.7799999999999999,
+    "total_score": 75.05,
+    "signals": [
+      "站上5日线",
+      "站上20日线",
+      "缩量回调(主力未出)",
+      "微跌蓄势",
+      "量价健康(涨放量跌缩量)",
+      "缩量后放量上攻(强烈信号)",
+      "突破20日线",
+      "突破5日高点",
+      "KDJ金叉未超买",
+      "RSI=58(偏多区间)",
+      "刚启动(动量充沛)"
+    ],
+    "result": {
+      "next_day_open": 39.83,
+      "next_day_high": 41.6,
+      "next_day_close": 39.29,
+      "next_day_change": 0.33,
+      "hit": false,
+      "max_profit": 0.33
+    }
+  },
+  {
+    "date": "2026-04-30",
+    "symbol": "sz002460",
+    "name": "赣锋锂业",
+    "category": "strong",
+    "recommend_price": 88.59,
+    "recommend_change": 1.945,
+    "tech_score": 97,
+    "next_day_prob": 0.9,
+    "total_score": 88.15,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "缩量回调(主力未出)",
+      "适度上涨",
+      "量价健康(涨放量跌缩量)",
+      "缩量后放量上攻(强烈信号)",
+      "突破20日线",
+      "突破5日高点",
+      "KDJ金叉未超买",
+      "RSI=58(偏多区间)",
+      "刚启动(动量充沛)"
+    ],
+    "result": {
+      "next_day_open": 87.0,
+      "next_day_high": 91.19,
+      "next_day_close": 88.68,
+      "next_day_change": 0.1,
+      "hit": false,
+      "max_profit": 0.1
+    }
+  },
+  {
+    "date": "2026-05-06",
+    "symbol": "sz002202",
+    "name": "金风科技",
+    "category": "budget",
+    "recommend_price": 27.94,
+    "recommend_change": 1.416,
+    "tech_score": 79,
+    "next_day_prob": 0.8,
+    "total_score": 78.0,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "适度上涨",
+      "量价健康(涨放量跌缩量)",
+      "缩量后放量上攻(强烈信号)",
+      "突破5日高点",
+      "KDJ金叉未超买"
+    ],
+    "result": {
+      "next_day_open": 27.95,
+      "next_day_high": 28.68,
+      "next_day_close": 28.46,
+      "next_day_change": 1.86,
+      "hit": false,
+      "max_profit": 1.86
+    }
+  },
+  {
+    "date": "2026-05-06",
+    "symbol": "sh688521",
+    "name": "芯原股份",
+    "category": "strong",
+    "recommend_price": 281.01,
+    "recommend_change": 0.046,
+    "tech_score": 77,
+    "next_day_prob": 0.84,
+    "total_score": 79.15,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "温和启动",
+      "量价尚可",
+      "突破20日线",
+      "突破5日高点",
+      "KDJ金叉未超买",
+      "RSI=59(偏多区间)"
+    ],
+    "result": {
+      "next_day_open": 275.0,
+      "next_day_high": 278.5,
+      "next_day_close": 275.0,
+      "next_day_change": -2.14,
+      "hit": false,
+      "max_profit": -2.14
+    }
+  },
+  {
+    "date": "2026-05-06",
+    "symbol": "sh600330",
+    "name": "天通股份",
+    "category": "budget",
+    "recommend_price": 27.16,
+    "recommend_change": -2.617,
+    "tech_score": 70,
+    "next_day_prob": 0.72,
+    "total_score": 69.2,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "缩量回调(主力未出)",
+      "量价尚可",
+      "缩量后放量上攻(强烈信号)",
+      "突破5日高点",
+      "RSI=79(超买)",
+      "刚启动(动量充沛)"
+    ],
+    "result": {
+      "next_day_open": 27.01,
+      "next_day_high": 29.2,
+      "next_day_close": 27.98,
+      "next_day_change": 3.02,
+      "hit": true,
+      "max_profit": 3.02
+    }
+  },
+  {
+    "date": "2026-05-06",
+    "symbol": "sh600150",
+    "name": "中国船舶",
+    "category": "strong",
+    "recommend_price": 41.09,
+    "recommend_change": -1.604,
+    "tech_score": 67,
+    "next_day_prob": 0.6500000000000001,
+    "total_score": 68.25,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "缩量回调(主力未出)",
+      "微跌蓄势",
+      "量价健康(涨放量跌缩量)",
+      "缩量后放量上攻(强烈信号)",
+      "突破5日高点",
+      "RSI=92(超买)",
+      "刚启动(动量充沛)"
+    ],
+    "result": {
+      "next_day_open": 40.99,
+      "next_day_high": 41.93,
+      "next_day_close": 40.61,
+      "next_day_change": -1.17,
+      "hit": false,
+      "max_profit": -1.17
+    }
+  },
+  {
+    "date": "2026-05-07",
+    "symbol": "sh600958",
+    "name": "东方证券",
+    "category": "budget",
+    "recommend_price": 9.64,
+    "recommend_change": 3.212,
+    "tech_score": 71,
+    "next_day_prob": 0.86,
+    "total_score": 73.85,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "量价健康(涨放量跌缩量)",
+      "20日线上方不远",
+      "KDJ金叉未超买",
+      "RSI=58(偏多区间)",
+      "刚启动(动量充沛)"
+    ],
+    "result": {
+      "next_day_open": 9.44,
+      "next_day_high": 9.45,
+      "next_day_close": 9.39,
+      "next_day_change": -2.59,
+      "hit": false,
+      "max_profit": -2.59
+    }
+  },
+  {
+    "date": "2026-05-07",
+    "symbol": "sh688525",
+    "name": "佰维存储",
+    "category": "strong",
+    "recommend_price": 309.05,
+    "recommend_change": -0.665,
+    "tech_score": 72,
+    "next_day_prob": 0.7400000000000001,
+    "total_score": 73.60000000000001,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "缩量回调(主力未出)",
+      "微跌蓄势",
+      "量价健康(涨放量跌缩量)",
+      "缩量后放量上攻(强烈信号)",
+      "突破5日高点",
+      "KDJ金叉未超买",
+      "刚启动(动量充沛)"
+    ],
+    "result": {
+      "next_day_open": 290.0,
+      "next_day_high": 291.5,
+      "next_day_close": 289.69,
+      "next_day_change": -6.26,
+      "hit": false,
+      "max_profit": -6.26
+    }
+  },
+  {
+    "date": "2026-05-07",
+    "symbol": "sh603019",
+    "name": "中科曙光",
+    "category": "strong",
+    "recommend_price": 98.71,
+    "recommend_change": -1.092,
+    "potential_score": 85,
+    "tech_score": 71,
+    "next_day_prob": 0.525,
+    "total_score": 65.92357059509918,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "微跌蓄势",
+      "量价健康(涨放量跌缩量)",
+      "突破5日高点",
+      "KDJ金叉未超买"
+    ],
+    "result": {
+      "next_day_open": 97.99,
+      "next_day_high": 97.99,
+      "next_day_close": 96.19,
+      "next_day_change": -2.55,
+      "hit": false,
+      "max_profit": -2.55
+    }
+  },
+  {
+    "date": "2026-05-08",
+    "symbol": "sz002183",
+    "name": "怡 亚 通",
+    "category": "budget",
+    "recommend_price": 6.67,
+    "recommend_change": 2.615,
+    "potential_score": 75,
+    "tech_score": 64,
+    "next_day_prob": 0.575,
+    "total_score": 63.22753792298715,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "回调企稳形态",
+      "适度上涨",
+      "量价健康(涨放量跌缩量)",
+      "突破5日高点",
+      "KDJ金叉未超买",
+      "RSI=62(偏多区间)"
+    ],
+    "result": {
+      "next_day_open": 7.11,
+      "next_day_high": 7.34,
+      "next_day_close": 7.24,
+      "next_day_change": 8.55,
+      "hit": true,
+      "max_profit": 8.55
+    }
+  },
+  {
+    "date": "2026-05-08",
+    "symbol": "sz300395",
+    "name": "菲利华",
+    "category": "strong",
+    "recommend_price": 126.0,
+    "recommend_change": -1.961,
+    "potential_score": 78,
+    "tech_score": 71,
+    "next_day_prob": 0.525,
+    "total_score": 64.75962660443406,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "微跌蓄势",
+      "量价健康(涨放量跌缩量)",
+      "突破5日高点",
+      "KDJ金叉未超买"
+    ],
+    "result": {
+      "next_day_open": 133.0,
+      "next_day_high": 136.88,
+      "next_day_close": 134.86,
+      "next_day_change": 7.03,
+      "hit": true,
+      "max_profit": 7.03
+    }
+  },
+  {
+    "date": "2026-05-08",
+    "symbol": "sh601899",
+    "name": "紫金矿业",
+    "category": "budget",
+    "recommend_price": 34.8,
+    "recommend_change": 0.987,
+    "potential_score": 70,
+    "tech_score": 66,
+    "next_day_prob": 0.748,
+    "total_score": 70.18716452742123,
+    "signals": [
+      "站上5日线",
+      "站上20日线",
+      "回调企稳形态",
+      "温和启动",
+      "量价健康(涨放量跌缩量)",
+      "突破20日线",
+      "突破5日高点",
+      "KDJ金叉未超买",
+      "RSI=48(偏多区间)"
+    ],
+    "result": {
+      "next_day_open": 34.55,
+      "next_day_high": 34.72,
+      "next_day_close": 34.38,
+      "next_day_change": -1.21,
+      "hit": false,
+      "max_profit": -1.21
+    }
+  },
+  {
+    "date": "2026-05-08",
+    "symbol": "sz002217",
+    "name": "合力泰",
+    "category": "strong",
+    "recommend_price": 3.43,
+    "recommend_change": -2.0,
+    "potential_score": 73,
+    "tech_score": 74,
+    "next_day_prob": 0.5233,
+    "total_score": 65.1606651108518,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "微跌蓄势",
+      "量价健康(涨放量跌缩量)",
+      "缩量后放量上攻(强烈信号)",
+      "突破5日高点",
+      "KDJ超买区(谨慎)"
+    ],
+    "result": {
+      "next_day_open": 3.56,
+      "next_day_high": 3.76,
+      "next_day_close": 3.73,
+      "next_day_change": 8.75,
+      "hit": true,
+      "max_profit": 8.75
+    }
+  },
+  {
+    "date": "2026-05-11",
+    "symbol": "sz000938",
+    "name": "紫光股份",
+    "category": "budget",
+    "recommend_price": 31.67,
+    "recommend_change": -4.522,
+    "potential_score": 59,
+    "tech_score": 51,
+    "next_day_prob": 0.5819,
+    "total_score": 53.668495637466,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "量价尚可",
+      "突破5日高点",
+      "KDJ超买区(谨慎)",
+      "RSI=77(超买)"
+    ],
+    "result": {
+      "next_day_open": 32.19,
+      "next_day_high": 32.3,
+      "next_day_close": 30.71,
+      "next_day_change": -3.03,
+      "hit": false,
+      "max_profit": -3.03
+    }
+  },
+  {
+    "date": "2026-05-11",
+    "symbol": "sz000977",
+    "name": "浪潮信息",
+    "category": "strong",
+    "recommend_price": 75.9,
+    "recommend_change": -0.758,
+    "potential_score": 85,
+    "tech_score": 41,
+    "next_day_prob": 0.5819,
+    "total_score": 57.780762153663204,
+    "signals": [
+      "站上5日线",
+      "站上20日线",
+      "微跌蓄势",
+      "量价背离(风险)",
+      "缩量后放量上攻(强烈信号)",
+      "突破5日高点",
+      "KDJ金叉未超买",
+      "RSI=64(偏多区间)"
+    ],
+    "result": {
+      "next_day_open": 76.5,
+      "next_day_high": 76.55,
+      "next_day_close": 73.15,
+      "next_day_change": -3.62,
+      "hit": false,
+      "max_profit": -3.62
+    }
+  },
+  {
+    "date": "2026-05-12",
+    "symbol": "sh600089",
+    "name": "特变电工",
+    "category": "budget",
+    "recommend_price": 28.88,
+    "recommend_change": 3.217,
+    "potential_score": 62,
+    "tech_score": 69,
+    "next_day_prob": 0.7899999999999999,
+    "total_score": 71.44999999999999,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "量价健康(涨放量跌缩量)",
+      "缩量后放量上攻(强烈信号)",
+      "突破20日线",
+      "突破5日高点",
+      "KDJ金叉未超买",
+      "RSI=50(偏多区间)",
+      "刚启动(动量充沛)"
+    ],
+    "result": {
+      "next_day_open": 28.96,
+      "next_day_high": 29.67,
+      "next_day_close": 28.96,
+      "next_day_change": 0.28,
+      "hit": false,
+      "max_profit": 0.28
+    }
+  },
+  {
+    "date": "2026-05-12",
+    "symbol": "sz002179",
+    "name": "中航光电",
+    "category": "strong",
+    "recommend_price": 40.94,
+    "recommend_change": 0.813,
+    "potential_score": 82,
+    "tech_score": 66,
+    "next_day_prob": 0.71,
+    "total_score": 70.14999999999999,
+    "signals": [
+      "MA5>MA10(短期多头)",
+      "站上5日线",
+      "站上20日线",
+      "均线多头排列",
+      "回调企稳形态",
+      "企稳日放量(资金承接)",
+      "温和启动",
+      "量价健康(涨放量跌缩量)",
+      "突破5日高点",
+      "KDJ超买区(谨慎)",
+      "J值超100(极度超买)"
+    ],
+    "result": {
+      "next_day_open": 40.82,
+      "next_day_high": 41.74,
+      "next_day_close": 41.28,
+      "next_day_change": 0.83,
+      "hit": false,
+      "max_profit": 0.83
+    }
+  },
+  {
+    "date": "2026-05-12",
+    "symbol": "sh600111",
+    "name": "北方稀土",
+    "category": "strong",
+    "recommend_price": 54.44,
+    "recommend_change": -5.895,
+    "potential_score": 87,
+    "tech_score": 80,
+    "next_day_prob": 0.3,
+    "total_score": 70.30000000000001,
+    "signals": [
+      "回调企稳形态",
+      "企稳放量(资金确认)",
+      "缩量回调(主力未出)",
+      "缩量后放量上攻(★最强)",
+      "深幅回调(反弹预期强)",
+      "量价健康(涨放量跌缩量)",
+      "大跌(反弹机会)",
+      "RSI=72(超买)",
+      "KDJ超买(谨慎)",
+      "J值超100(极度超买)",
+      "❄️有色金属深跌(可能继续)"
+    ],
+    "sector_heat": {
+      "sector_code": "new_ysjs",
+      "sector_name": "有色金属",
+      "heat_score": 35,
+      "heat_level": "cold",
+      "sector_change": -0.68882812318958,
+      "up_ratio": 0.4
+    },
+    "result": {
+      "next_day_open": 54.0,
+      "next_day_high": 56.13,
+      "next_day_close": 55.9,
+      "next_day_change": 2.68,
+      "hit": true,
+      "max_profit": 2.68
+    }
+  },
+  {
+    "date": "2026-05-12",
+    "symbol": "sz300058",
+    "name": "蓝色光标",
+    "category": "strong",
+    "recommend_price": 18.21,
+    "recommend_change": -3.803,
+    "potential_score": 89,
+    "tech_score": 46,
+    "next_day_prob": 0.48,
+    "total_score": 63.7,
+    "signals": [
+      "深幅回调(反弹预期强)",
+      "5日回撤5.6%(有反弹空间)",
+      "量价尚可",
+      "大跌(反弹机会)",
+      "RSI=51(中性偏多)"
+    ],
+    "sector_heat": {
+      "sector_code": "",
+      "sector_name": "未知",
+      "heat_score": 50,
+      "heat_level": "warm",
+      "sector_change": 0,
+      "up_ratio": 0.5
+    },
+    "result": {
+      "next_day_open": 18.01,
+      "next_day_high": 18.98,
+      "next_day_close": 18.71,
+      "next_day_change": 2.75,
+      "hit": true,
+      "max_profit": 2.75
+    }
+  },
+  {
+    "date": "2026-05-13",
+    "symbol": "sh601179",
+    "name": "中国西电",
+    "category": "budget",
+    "recommend_price": 18.94,
+    "recommend_change": -1.354,
+    "potential_score": 79,
+    "tech_score": 57,
+    "next_day_prob": 0.4799999999999999,
+    "total_score": 63.86,
+    "signals": [
+      "回调企稳形态",
+      "企稳放量(资金确认)",
+      "小幅回调蓄势",
+      "量价健康(涨放量跌缩量)",
+      "小跌(较安全)"
+    ],
+    "sector_heat": {
+      "sector_code": "new_fdsb",
+      "sector_name": "发电设备",
+      "heat_score": 68,
+      "heat_level": "warm",
+      "sector_change": 3.4286267026618,
+      "up_ratio": 0.6
+    },
+    "result": {
+      "next_day_open": 18.8,
+      "next_day_high": 18.94,
+      "next_day_close": 17.75,
+      "next_day_change": -6.28,
+      "hit": false,
+      "max_profit": -6.28
+    }
+  },
+  {
+    "date": "2026-05-13",
+    "symbol": "sh688498",
+    "name": "源杰科技",
+    "category": "strong",
+    "recommend_price": 1688.75,
+    "recommend_change": -2.441,
+    "potential_score": 92,
+    "tech_score": 48,
+    "next_day_prob": 0.36,
+    "total_score": 63.160000000000004,
+    "signals": [
+      "回调企稳形态",
+      "深幅回调(反弹预期强)",
+      "量价尚可",
+      "大跌(反弹机会)",
+      "KDJ超买(谨慎)"
+    ],
+    "sector_heat": {
+      "sector_code": "new_dzqj",
+      "sector_name": "电子器件",
+      "heat_score": 58,
+      "heat_level": "warm",
+      "sector_change": 2.0892646955262,
+      "up_ratio": 0.6
+    },
+    "result": {
+      "next_day_open": 1700.0,
+      "next_day_high": 1717.0,
+      "next_day_close": 1664.88,
+      "next_day_change": -1.41,
+      "hit": false,
+      "max_profit": -1.41
+    }
+  },
+  {
+    "date": "2026-05-15",
+    "symbol": "sz002506",
+    "name": "协鑫集成",
+    "category": "budget",
+    "recommend_price": 4.66,
+    "recommend_change": -4.898,
+    "potential_score": 75,
+    "tech_score": 62,
+    "next_day_prob": 0.37999999999999995,
+    "total_score": 63.05,
+    "signals": [
+      "回调企稳形态",
+      "企稳放量(资金确认)",
+      "深幅回调(反弹预期强)",
+      "量价健康(涨放量跌缩量)",
+      "大跌(反弹机会)",
+      "RSI=51(中性偏多)",
+      "J值超100(极度超买)",
+      "❄️电力行业深跌(可能继续)"
+    ],
+    "sector_heat": {
+      "sector_code": "new_dlhy",
+      "sector_name": "电力行业",
+      "heat_score": 3,
+      "heat_level": "cold",
+      "sector_change": -1.3359706321136,
+      "up_ratio": 0.4
+    },
+    "result": {
+      "next_day_open": 4.55,
+      "next_day_high": 4.6,
+      "next_day_close": 4.35,
+      "next_day_change": -6.65,
+      "hit": false,
+      "max_profit": -6.65
+    }
+  },
+  {
+    "date": "2026-05-15",
+    "symbol": "sh601869",
+    "name": "长飞光纤",
+    "category": "strong",
+    "recommend_price": 374.17,
+    "recommend_change": -7.544,
+    "potential_score": 97,
+    "tech_score": 47,
+    "next_day_prob": 0.42,
+    "total_score": 68.5,
+    "signals": [
+      "深幅回调(反弹预期强)",
+      "量价健康(涨放量跌缩量)",
+      "大跌(反弹机会)",
+      "RSI=57(中性偏多)"
+    ],
+    "sector_heat": {
+      "sector_code": "",
+      "sector_name": "未知",
+      "heat_score": 50,
+      "heat_level": "warm",
+      "sector_change": 0,
+      "up_ratio": 0.5
+    },
+    "result": {
+      "next_day_open": 368.0,
+      "next_day_high": 401.99,
+      "next_day_close": 399.45,
+      "next_day_change": 6.76,
+      "hit": true,
+      "max_profit": 6.76
+    }
+  },
+  {
+    "date": "2026-05-18",
+    "symbol": "sz000066",
+    "name": "中国长城",
+    "category": "budget",
+    "recommend_price": 20.2,
+    "recommend_change": -1.463,
+    "potential_score": 79,
+    "tech_score": 36,
+    "next_day_prob": 0.33999999999999997,
+    "total_score": 55.400000000000006,
+    "signals": [
+      "小幅回调蓄势",
+      "5日回撤19.2%(有反弹空间)",
+      "量价尚可",
+      "小跌(较安全)"
+    ],
+    "sector_heat": {
+      "sector_code": "",
+      "sector_name": "未知",
+      "heat_score": 50,
+      "heat_level": "warm",
+      "sector_change": 0,
+      "up_ratio": 0.5
+    },
+    "result": {
+      "next_day_open": 20.05,
+      "next_day_high": 20.88,
+      "next_day_close": 20.72,
+      "next_day_change": 2.57,
+      "hit": true,
+      "max_profit": 2.57
+    }
+  },
+  {
+    "date": "2026-05-18",
+    "symbol": "sz300442",
+    "name": "润泽科技",
+    "category": "strong",
+    "recommend_price": 99.37,
+    "recommend_change": -3.016,
+    "potential_score": 97,
+    "tech_score": 53,
+    "next_day_prob": 0.4799999999999999,
+    "total_score": 72.28999999999999,
+    "signals": [
+      "缩量后放量上攻(★最强)",
+      "深幅回调(反弹预期强)",
+      "量价健康(涨放量跌缩量)",
+      "大跌(反弹机会)"
+    ],
+    "sector_heat": {
+      "sector_code": "",
+      "sector_name": "未知",
+      "heat_score": 50,
+      "heat_level": "warm",
+      "sector_change": 0,
+      "up_ratio": 0.5
+    },
+    "result": {
+      "next_day_open": 100.9,
+      "next_day_high": 100.98,
+      "next_day_close": 98.33,
+      "next_day_change": -1.05,
+      "hit": false,
+      "max_profit": -1.05
+    }
+  },
+  {
+    "date": "2026-05-19",
+    "symbol": "sz002600",
+    "name": "领益智造",
+    "category": "budget",
+    "recommend_price": 16.91,
+    "recommend_change": -0.821,
+    "potential_score": 97,
+    "tech_score": 43,
+    "next_day_prob": 0.33,
+    "total_score": 66.58000000000001,
+    "signals": [
+      "小幅回调蓄势",
+      "量价健康(涨放量跌缩量)",
+      "微跌(安全)",
+      "RSI=80(超买)",
+      "KDJ超买(谨慎)",
+      "🔥电子器件回调(★最佳买点)"
+    ],
+    "sector_heat": {
+      "sector_code": "new_dzqj",
+      "sector_name": "电子器件",
+      "heat_score": 75,
+      "heat_level": "hot",
+      "sector_change": 2.0386355330973,
+      "up_ratio": 0.6
+    },
+    "result": null
+  },
+  {
+    "date": "2026-05-19",
+    "symbol": "sz300857",
+    "name": "协创数据",
+    "category": "strong",
+    "recommend_price": 270.49,
+    "recommend_change": -0.592,
+    "potential_score": 97,
+    "tech_score": 61,
+    "next_day_prob": 0.5499999999999999,
+    "total_score": 76.84,
+    "signals": [
+      "缩量回调(主力未出)",
+      "小幅回调蓄势",
+      "5日回撤10.1%(有反弹空间)",
+      "量价健康(涨放量跌缩量)",
+      "微跌(安全)",
+      "RSI=52(中性偏多)",
+      "🔥电子器件回调(★最佳买点)"
+    ],
+    "sector_heat": {
+      "sector_code": "new_dzqj",
+      "sector_name": "电子器件",
+      "heat_score": 75,
+      "heat_level": "hot",
+      "sector_change": 2.0386355330973,
+      "up_ratio": 0.6
+    },
     "result": null
   }
 ]
