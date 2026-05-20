@@ -1,11 +1,9 @@
 name: A股T+1选股系统
 
 on:
-  # ★主调度：GitHub原生定时触发（最可靠，不依赖外部Agent/cron）
-  schedule:
-    - cron: '0 6 * * 1-5'    # 北京时间14:00 复盘
-    - cron: '25 6 * * 1-5'   # 北京时间14:25 推荐
-  # 手动/外部触发（保留兼容）
+  # 仅保留手动/外部触发，定时调度由sandbox本地crontab负责
+  # ★注意：GitHub Actions schedule在私有仓库上延迟严重（实测延迟11小时），
+  #   因此不使用schedule触发，改用sandbox本地crontab（已验证连续30天稳定）
   repository_dispatch:
     types: [recommend, review, check]
   workflow_dispatch:
@@ -56,8 +54,7 @@ jobs:
     if: >-
       needs.trading-day-check.outputs.is_trading_day == 'true' && 
       (github.event.action == 'recommend' || 
-       (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'recommend') ||
-       (github.event_name == 'schedule' && github.event.schedule == '25 6 * * 1-5'))
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'recommend'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,8 +102,7 @@ jobs:
     if: >-
       needs.trading-day-check.outputs.is_trading_day == 'true' && 
       (github.event.action == 'review' || 
-       (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'review') ||
-       (github.event_name == 'schedule' && github.event.schedule == '0 6 * * 1-5'))
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'review'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
