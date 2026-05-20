@@ -4,9 +4,9 @@
   "params": {
     "min_tech_score": 50,
     "min_next_day_prob": 0.3,
-    "weight_potential": 0.4800000000000001,
+    "weight_potential": 0.4900000000000001,
     "weight_tech": 0.35,
-    "weight_prob": 0.16999999999999993,
+    "weight_prob": 0.15999999999999992,
     "max_recommend_day_change": 3.5,
     "min_prob_threshold": 0.3,
     "repeat_blacklist_days": 7
@@ -142,6 +142,22 @@
           "weight_potential": 0.4800000000000001,
           "weight_tech": 0.35,
           "weight_prob": 0.16999999999999993,
+          "max_recommend_day_change": 3.5,
+          "min_prob_threshold": 0.3,
+          "repeat_blacklist_days": 7
+        },
+        "prob_offset": -0.05
+      },
+      {
+        "date": "2026-05-19",
+        "win_rate": 0.2292,
+        "sample_size": 48,
+        "params": {
+          "min_tech_score": 50,
+          "min_next_day_prob": 0.3,
+          "weight_potential": 0.4900000000000001,
+          "weight_tech": 0.35,
+          "weight_prob": 0.15999999999999992,
           "max_recommend_day_change": 3.5,
           "min_prob_threshold": 0.3,
           "repeat_blacklist_days": 7
