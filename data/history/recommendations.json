@@ -1542,7 +1542,14 @@
       "sector_change": 2.0386355330973,
       "up_ratio": 0.6
     },
-    "result": null
+    "result": {
+      "next_day_open": 16.5,
+      "next_day_high": 16.74,
+      "next_day_close": 16.23,
+      "next_day_change": -4.02,
+      "hit": false,
+      "max_profit": -4.02
+    }
   },
   {
     "date": "2026-05-19",
@@ -1572,6 +1579,13 @@
       "sector_change": 2.0386355330973,
       "up_ratio": 0.6
     },
-    "result": null
+    "result": {
+      "next_day_open": 268.0,
+      "next_day_high": 280.0,
+      "next_day_close": 272.84,
+      "next_day_change": 0.87,
+      "hit": false,
+      "max_profit": 0.87
+    }
   }
 ]
