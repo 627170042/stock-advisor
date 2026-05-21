@@ -90,16 +90,22 @@ except:
         fi
     fi
     
-    # 如果已过14:00且复盘未完成，立即执行
-    if [ $BJ_MINS -ge 840 ] && [ "$HAS_REVIEW" = false ]; then
-        echo "[$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')] 补执行复盘" >> "$LOG"
-        bash "$DIR/run_local.sh" review >> "$LOG" 2>&1 &
-    fi
-    
-    # 如果已过14:25且推荐未完成，立即执行
-    if [ $BJ_MINS -ge 865 ] && [ "$HAS_RECOMMEND" = false ]; then
-        echo "[$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')] 补执行推荐" >> "$LOG"
-        bash "$DIR/run_local.sh" recommend >> "$LOG" 2>&1 &
+    # ★只在北京时间 8:00-21:00 之间补执行，避免凌晨推送扰民
+    # 8:00 = 480分钟, 21:00 = 1260分钟
+    if [ $BJ_MINS -ge 480 ] && [ $BJ_MINS -le 1260 ]; then
+        # 如果已过14:00且复盘未完成，立即执行
+        if [ $BJ_MINS -ge 840 ] && [ "$HAS_REVIEW" = false ]; then
+            echo "[$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')] 补执行复盘" >> "$LOG"
+            bash "$DIR/run_local.sh" review >> "$LOG" 2>&1 &
+        fi
+
+        # 如果已过14:25且推荐未完成，立即执行
+        if [ $BJ_MINS -ge 865 ] && [ "$HAS_RECOMMEND" = false ]; then
+            echo "[$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')] 补执行推荐" >> "$LOG"
+            bash "$DIR/run_local.sh" recommend >> "$LOG" 2>&1 &
+        fi
+    else
+        echo "[$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')] 当前非活跃时段(8:00-21:00)，跳过补执行" >> "$LOG"
     fi
 fi
 
