@@ -1622,5 +1622,64 @@
       "hit": false,
       "max_profit": -1.15
     }
+  },
+  {
+    "date": "2026-05-22",
+    "symbol": "sh601991",
+    "name": "大唐发电",
+    "category": "budget",
+    "recommend_price": 6.91,
+    "recommend_change": -1.986,
+    "potential_score": 77,
+    "tech_score": 49,
+    "next_day_prob": 0.33000000000000007,
+    "total_score": 60.48989898989899,
+    "signals": [
+      "缩量回调(主力未出)",
+      "小幅回调蓄势",
+      "5日回撤15.9%(有反弹空间)",
+      "量价健康(涨放量跌缩量)",
+      "小跌(较安全)",
+      "RSI=74(超买)"
+    ],
+    "sector_heat": {
+      "sector_code": "new_dlhy",
+      "sector_name": "电力行业",
+      "heat_score": 28,
+      "heat_level": "cold",
+      "sector_change": 0.58157006239946,
+      "up_ratio": 0.6
+    },
+    "result": null
+  },
+  {
+    "date": "2026-05-22",
+    "symbol": "sz300033",
+    "name": "同花顺",
+    "category": "strong",
+    "recommend_price": 226.95,
+    "recommend_change": -3.916,
+    "potential_score": 97,
+    "tech_score": 70,
+    "next_day_prob": 0.5599999999999998,
+    "total_score": 81.16666666666667,
+    "signals": [
+      "缩量回调(主力未出)",
+      "缩量后放量上攻(★最强)",
+      "深幅回调(反弹预期强)",
+      "量价健康(涨放量跌缩量)",
+      "大跌(反弹机会)",
+      "RSI=54(中性偏多)",
+      "KDJ超卖(反弹可能)"
+    ],
+    "sector_heat": {
+      "sector_code": "",
+      "sector_name": "未知",
+      "heat_score": 50,
+      "heat_level": "warm",
+      "sector_change": 0,
+      "up_ratio": 0.5
+    },
+    "result": null
   }
 ]
