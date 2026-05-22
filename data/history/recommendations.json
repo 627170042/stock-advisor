@@ -1614,6 +1614,13 @@
       "sector_change": 0,
       "up_ratio": 0.5
     },
-    "result": null
+    "result": {
+      "next_day_open": 47.22,
+      "next_day_high": 47.75,
+      "next_day_close": 47.42,
+      "next_day_change": -1.15,
+      "hit": false,
+      "max_profit": -1.15
+    }
   }
 ]
