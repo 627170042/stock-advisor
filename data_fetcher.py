@@ -1,6 +1,12 @@
 """
-A股T+1短线选股系统 - 数据采集模块
-数据源：新浪财经API（实时行情）+ 历史K线
+A股T+1短线选股系统 - 数据采集模块 v6
+
+v5→v6 核心升级：
+1. K线数据扩展到120根（原20根，MACD/RSI/均线计算无效）
+2. 新增大盘指数获取（上证/深证/创业板）
+3. 新增涨跌家数比（市场温度指标）
+4. 全A股扫描能力（分页遍历所有A股）
+5. 北向资金数据（市场风向标）
 """
 import requests
 import json
@@ -14,6 +20,12 @@ HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     'Referer': 'https://finance.sina.com.cn'
 }
+
+EM_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Referer': 'https://data.eastmoney.com'
+}
+
 
 # ==================== 实时行情 ====================
 
@@ -41,41 +53,49 @@ def get_realtime_quote(code):
         'time': fields[31],
     }
 
+
 def get_batch_quotes(codes):
-    """批量获取实时行情"""
-    codes_str = ','.join(codes)
-    url = f'https://hq.sinajs.cn/list={codes_str}'
-    r = requests.get(url, headers=HEADERS, timeout=15)
-    results = {}
-    for line in r.text.strip().split('\n'):
-        match = re.search(r'hq_str_(s[hz]\d+)="([^"]+)"', line)
-        if not match:
-            continue
-        code = match.group(1)
-        fields = match.group(2).split(',')
-        if len(fields) < 32 or fields[0] == '':
-            continue
+    """批量获取实时行情（每批最多30只）"""
+    all_results = {}
+    batch_size = 30
+    for i in range(0, len(codes), batch_size):
+        batch = codes[i:i+batch_size]
+        codes_str = ','.join(batch)
+        url = f'https://hq.sinajs.cn/list={codes_str}'
         try:
-            results[code] = {
-                'code': code,
-                'name': fields[0],
-                'open': float(fields[1]),
-                'prev_close': float(fields[2]),
-                'current': float(fields[3]),
-                'high': float(fields[4]),
-                'low': float(fields[5]),
-                'volume': int(fields[8]),
-                'amount': float(fields[9]),
-                'date': fields[30],
-                'time': fields[31],
-                'change_pct': round((float(fields[3]) - float(fields[2])) / float(fields[2]) * 100, 2) if float(fields[2]) > 0 else 0,
-            }
-        except (ValueError, ZeroDivisionError):
-            continue
-    return results
+            r = requests.get(url, headers=HEADERS, timeout=15)
+            for line in r.text.strip().split('\n'):
+                match = re.search(r'hq_str_(s[hz]\d+)="([^"]+)"', line)
+                if not match:
+                    continue
+                code = match.group(1)
+                fields = match.group(2).split(',')
+                if len(fields) < 32 or fields[0] == '':
+                    continue
+                try:
+                    all_results[code] = {
+                        'code': code,
+                        'name': fields[0],
+                        'open': float(fields[1]),
+                        'prev_close': float(fields[2]),
+                        'current': float(fields[3]),
+                        'high': float(fields[4]),
+                        'low': float(fields[5]),
+                        'volume': int(fields[8]),
+                        'amount': float(fields[9]),
+                        'date': fields[30],
+                        'time': fields[31],
+                        'change_pct': round((float(fields[3]) - float(fields[2])) / float(fields[2]) * 100, 2) if float(fields[2]) > 0 else 0,
+                    }
+                except (ValueError, ZeroDivisionError):
+                    continue
+        except Exception as e:
+            print(f"  批量行情获取异常: {e}")
+        time.sleep(0.1)
+    return all_results
 
 
-# ==================== 股票列表（多维度排序） ====================
+# ==================== 股票列表（全A股扫描） ====================
 
 def get_stock_list(page=1, num=80, sort='amount', asc=0, node='hs_a'):
     """获取A股列表，可按不同维度排序"""
@@ -122,6 +142,53 @@ def get_stock_list(page=1, num=80, sort='amount', asc=0, node='hs_a'):
     return results
 
 
+def scan_all_a_stocks(min_amount=50000000, min_turnover=1.0):
+    """
+    ★v6新增: 全A股扫描
+    分页遍历所有A股，按成交额排序
+    过滤条件: 成交额 >= min_amount, 换手率 >= min_turnover
+    返回: dict {symbol: stock_info}
+    """
+    print("  [v6] 全A股扫描开始...")
+    all_stocks = {}
+    page = 1
+    total_scanned = 0
+
+    while True:
+        stocks = get_stock_list(page=page, num=80, sort='amount', asc=0)
+        if not stocks:
+            break
+
+        total_scanned += len(stocks)
+
+        for s in stocks:
+            # 基本过滤
+            if s.get('amount', 0) < min_amount:
+                # 按成交额降序排列，后面的更小，可以提前退出
+                # 但为了完整扫描，继续获取
+                continue
+            if s.get('turnoverratio', 0) < min_turnover:
+                continue
+            if 'ST' in s.get('name', '') or 'st' in s.get('name', ''):
+                continue
+            if s.get('trade', 0) <= 0:
+                continue
+            board = classify_board(s['symbol'])
+            if board == 'bse':
+                continue
+
+            all_stocks[s['symbol']] = s
+
+        page += 1
+        # 安全限制：最多扫描100页
+        if page > 100:
+            break
+        time.sleep(0.15)
+
+    print(f"  [v6] 全A股扫描完成: 共扫描{total_scanned}只, 符合条件{len(all_stocks)}只")
+    return all_stocks
+
+
 def get_top_gainers(num=80):
     """获取涨幅前N的股票"""
     return get_stock_list(page=1, num=num, sort='changepercent', asc=0)
@@ -133,23 +200,249 @@ def get_top_volume(num=80):
 
 
 def get_top_turnover(num=80):
-    """获取换手率前N的股票（资金活跃度）"""
+    """获取换手率前N的股票"""
     return get_stock_list(page=1, num=num, sort='turnoverratio', asc=0)
 
 
-def get_top_rise_volume(num=80):
-    """获取量比前N的股票（资金流入加速）"""
-    return get_stock_list(page=1, num=num, sort='volume', asc=0)
+# ==================== ★v6新增: 大盘指数数据 ====================
+
+def get_market_indices():
+    """
+    ★v6新增: 获取大盘指数实时数据
+    返回: {
+        'sh000001': {'name': '上证指数', 'change_pct': ..., ...},
+        'sz399001': {'name': '深证成指', 'change_pct': ..., ...},
+        'sz399006': {'name': '创业板指', 'change_pct': ..., ...},
+    }
+    """
+    indices = {
+        'sh000001': '上证指数',
+        'sz399001': '深证成指',
+        'sz399006': '创业板指',
+    }
+
+    codes_str = ','.join(indices.keys())
+    url = f'https://hq.sinajs.cn/list={codes_str}'
+
+    results = {}
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        for line in r.text.strip().split('\n'):
+            match = re.search(r'hq_str_(s[hz]\d+)="([^"]+)"', line)
+            if not match:
+                continue
+            code = match.group(1)
+            fields = match.group(2).split(',')
+            if len(fields) < 32 or fields[0] == '':
+                continue
+            try:
+                prev_close = float(fields[2])
+                current = float(fields[3])
+                change_pct = (current - prev_close) / prev_close * 100 if prev_close > 0 else 0
+                results[code] = {
+                    'name': indices.get(code, fields[0]),
+                    'open': float(fields[1]),
+                    'prev_close': prev_close,
+                    'current': current,
+                    'high': float(fields[4]),
+                    'low': float(fields[5]),
+                    'volume': int(fields[8]),
+                    'amount': float(fields[9]),
+                    'change_pct': round(change_pct, 2),
+                }
+            except (ValueError, ZeroDivisionError):
+                continue
+    except Exception as e:
+        print(f"  大盘指数获取失败: {e}")
+
+    return results
+
+
+def get_market_environment():
+    """
+    ★v6新增: 综合市场环境评估
+    返回: {
+        'score': 0-100,    # 市场环境分数
+        'level': 'bull/bear/neutral',
+        'indices': {...},
+        'advance_decline': {...},
+        'signal': '适合选股/谨慎选股/不宜选股'
+    }
+    """
+    env = {
+        'score': 50,
+        'level': 'neutral',
+        'indices': {},
+        'advance_decline': {},
+        'signal': '谨慎选股',
+    }
+
+    # 1. 获取大盘指数
+    indices = get_market_indices()
+    env['indices'] = indices
+
+    if indices:
+        sh = indices.get('sh000001', {})
+        sz = indices.get('sz399001', {})
+        cyb = indices.get('sz399006', {})
+
+        sh_change = sh.get('change_pct', 0)
+        sz_change = sz.get('change_pct', 0)
+        cyb_change = cyb.get('change_pct', 0)
+
+        # 大盘涨跌幅评分 (0-40分)
+        avg_change = (sh_change + sz_change) / 2
+        if avg_change >= 1.5:
+            env['score'] += 30
+        elif avg_change >= 0.5:
+            env['score'] += 20
+        elif avg_change >= 0:
+            env['score'] += 10
+        elif avg_change >= -0.5:
+            env['score'] += 0
+        elif avg_change >= -1.5:
+            env['score'] -= 15
+        else:
+            env['score'] -= 30
+
+        # 创业板独立评估 (0-20分)
+        if cyb_change >= 1:
+            env['score'] += 15
+        elif cyb_change >= 0:
+            env['score'] += 5
+        elif cyb_change <= -1.5:
+            env['score'] -= 10
+
+    # 2. 获取涨跌家数比
+    adv_dec = get_advance_decline_ratio()
+    env['advance_decline'] = adv_dec
+
+    if adv_dec:
+        ratio = adv_dec.get('ratio', 1.0)
+        if ratio >= 3.0:
+            env['score'] += 20  # 涨远多于跌
+        elif ratio >= 2.0:
+            env['score'] += 12
+        elif ratio >= 1.0:
+            env['score'] += 5
+        elif ratio >= 0.5:
+            env['score'] -= 5
+        else:
+            env['score'] -= 15
+
+    # 3. 综合评定
+    env['score'] = max(0, min(100, env['score']))
+
+    if env['score'] >= 70:
+        env['level'] = 'bull'
+        env['signal'] = '适合选股'
+    elif env['score'] >= 40:
+        env['level'] = 'neutral'
+        env['signal'] = '谨慎选股'
+    else:
+        env['level'] = 'bear'
+        env['signal'] = '不宜选股'
+
+    print(f"  [v6] 市场环境: {env['level']}({env['score']}分) - {env['signal']}")
+
+    return env
+
+
+# ==================== ★v6新增: 涨跌家数比 ====================
+
+def get_advance_decline_ratio():
+    """
+    ★v6新增: 获取A股涨跌家数比
+    数据源: 东方财富A股列表API，统计涨跌家数
+    返回: {'up': N, 'down': N, 'flat': N, 'ratio': up/down}
+    """
+    try:
+        url = 'https://push2.eastmoney.com/api/qt/clist/get'
+        params = {
+            'cb': 'jQuery',
+            'pn': 1,
+            'pz': 1,  # 只要1条数据，目的是拿total
+            'po': '1',
+            'np': '1',
+            'ut': 'bd1d9ddb04089700cf9c27f6f7426281',
+            'fltt': '2',
+            'invt': '2',
+            'fid': 'f3',
+            'fs': 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048',  # 全A股
+            'fields': 'f2,f3,f12,f14',
+        }
+        r = requests.get(url, params=params, headers=EM_HEADERS, timeout=15)
+        text = re.sub(r'^jQuery\(', '', r.text)
+        text = re.sub(r'\)$', '', text)
+        data = json.loads(text)
+        total = data.get('data', {}).get('total', 0)
+
+        if total <= 0:
+            return {}
+
+        # 获取所有股票来统计涨跌 — 取前500只 + 后500只估算
+        # 实际用两页来估算
+        up_count = 0
+        down_count = 0
+        flat_count = 0
+
+        for page_num in [1, 2]:
+            params['pn'] = page_num
+            params['pz'] = 500
+            r = requests.get(url, params=params, headers=EM_HEADERS, timeout=15)
+            text = re.sub(r'^jQuery\(', '', r.text)
+            text = re.sub(r'\)$', '', text)
+            data = json.loads(text)
+            items = data.get('data', {}).get('diff', [])
+
+            for item in items:
+                change = item.get('f3', 0)
+                if change is None:
+                    continue
+                try:
+                    change = float(change)
+                    if change > 0:
+                        up_count += 1
+                    elif change < 0:
+                        down_count += 1
+                    else:
+                        flat_count += 1
+                except (ValueError, TypeError):
+                    continue
+
+            time.sleep(0.1)
+
+        if down_count == 0:
+            ratio = 10.0 if up_count > 0 else 1.0
+        else:
+            ratio = up_count / down_count
+
+        return {
+            'up': up_count,
+            'down': down_count,
+            'flat': flat_count,
+            'ratio': round(ratio, 2),
+        }
+
+    except Exception as e:
+        print(f"  涨跌家数获取失败: {e}")
+        return {}
 
 
 # ==================== 历史K线 ====================
 
-def get_kline_sina(code, scale='240', datalen='30'):
+def get_kline_sina(code, scale='240', datalen='120'):
     """
     获取新浪K线数据
     code: sh600519
     scale: 5/15/30/60/240(日K)
-    datalen: 返回条数
+    datalen: 返回条数（★v6: 默认120根★）
+
+    ★v6关键升级: datalen从20→120
+    - MACD需要26+9=35根最小
+    - RSI(14)需要15根最小
+    - 均线MA60需要60根
+    - 趋势判断需要更长的历史窗口
     """
     url = f'https://quotes.sina.cn/cn/api/jsonp_v2.php/=/CN_MarketDataService.getKLineData'
     params = {
@@ -226,17 +519,8 @@ def is_star(code):
 
 # ==================== 板块行情数据（东方财富） ====================
 
-EM_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'Referer': 'https://data.eastmoney.com'
-}
-
-
 def get_concept_sectors(page=1, num=500):
-    """
-    获取东方财富概念板块行情数据
-    返回: [{code, name, change_pct, up_count, down_count, lead_stock, lead_change}, ...]
-    """
+    """获取东方财富概念板块行情数据"""
     url = 'https://push2.eastmoney.com/api/qt/clist/get'
     params = {
         'cb': 'jQuery',
@@ -253,7 +537,6 @@ def get_concept_sectors(page=1, num=500):
     }
     try:
         r = requests.get(url, params=params, headers=EM_HEADERS, timeout=15)
-        # 去除JSONP回调
         text = re.sub(r'^jQuery\(', '', r.text)
         text = re.sub(r'\)$', '', text)
         data = json.loads(text)
@@ -279,24 +562,17 @@ def get_concept_sectors(page=1, num=500):
 
 
 def get_stock_industry_f10(code):
-    """
-    通过东方财富F10接口获取个股行业分类(EM2016格式)
-    code: sh600519 或 sz000001
-    返回: "食品饮料-饮料-白酒" 或 None
-    """
-    # 转换代码格式: sh600519 → SH600519
+    """通过东方财富F10接口获取个股行业分类"""
     em_code = code.upper()
     url = f'https://emweb.securities.eastmoney.com/PC_HSF10/CompanySurvey/PageAjax?code={em_code}'
     try:
         r = requests.get(url, headers=EM_HEADERS, timeout=10)
         data = r.json()
-        # EM2016行业分类在jbzl[0]['EM2016']中
         jbzl = data.get('jbzl', [])
         if isinstance(jbzl, list) and jbzl:
             industry = jbzl[0].get('EM2016', '')
             if industry:
                 return industry
-        # 尝试其他字段
         industry = data.get('sshy', '')
         if industry:
             return industry

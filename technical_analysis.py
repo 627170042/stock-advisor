@@ -1,26 +1,26 @@
 """
-A股T+1短线选股系统 - 技术分析模块 v5
+A股T+1短线选股系统 - 技术分析模块 v6
 
-★v5 核心教训：反转模型逻辑★
-历史数据铁证：
-- 命中组预测概率66% vs 未命中组74% → 模型概率是反向指标！
-- 推荐日涨0~2%的股票胜率0% → "看起来安全"的微涨最危险
-- 命中组3只是prob=52-57% → "看起来犹豫"反而大赚
+v5→v6 核心重构：
+1. K线从20根→120根，所有指标计算有效化
+2. 核心逻辑从"跌多必反弹"→"趋势延续+动量加速"
+3. 概率基线从0.30→0.18（21.6%实际胜率的现实校准）
+4. 新增均线多头排列+放量突破信号（最强买入信号）
+5. 新增大盘环境修正（系统性风险过滤）
+6. 消除涨跌幅三重计算（v5在3个维度重复使用changepercent）
 
-核心改动：
-1. 概率基础从0.40降到0.30 — 降低过度自信
-2. 反转"趋势延续性"评分 — 均线多头≠次日涨，可能过热
-3. 大幅提升"回调反弹"权重 — 数据证明回调股胜率远高于追涨
-4. 新增"当日涨幅惩罚"维度 — 0~2%微涨是死亡区间
-5. 移除概率校准的桶融合（模型概率无区分度，校准无意义）
-6. 简化信号体系 — 去掉假信号，保留真信号
+v5铁证（必须解决的失败）：
+- 命中组预测概率66% vs 未命中组74% → 模型概率是反向指标
+- "跌多必反弹"完全错误：小跌(-1~0%)次日胜率仅8%，均值-1.27%
+- 推荐日涨0~2%的8只股全部未命中
+- K线20根导致MACD/RSI/均线计算全部无效
 """
 import numpy as np
 import json
 import os
 
 
-# ==================== 基础指标计算 ====================
+# ==================== 基础指标计算（适配120根K线） ====================
 
 def calc_ma(closes, period):
     if len(closes) < period:
@@ -39,6 +39,10 @@ def calc_ema(values, period):
 
 
 def calc_macd(closes, fast=12, slow=26, signal=9):
+    """
+    ★v6: 120根K线下MACD计算完整有效
+    v5用20根K线，slow=26就已超出数据范围，返回None
+    """
     if len(closes) < slow + signal:
         return None, None, None
     ema_fast = calc_ema(closes, fast)
@@ -60,6 +64,7 @@ def calc_macd(closes, fast=12, slow=26, signal=9):
 
 
 def calc_rsi(closes, period=14):
+    """v6: 120根K线下RSI计算完全有效"""
     if len(closes) < period + 1:
         return None
     gains, losses = [], []
@@ -101,259 +106,266 @@ def calc_boll(closes, period=20, nbdev=2):
     return ma + nbdev * std, ma, ma - nbdev * std
 
 
-# ==================== v5: 反转逻辑的次日预测模型 ====================
+# ==================== v6: 趋势延续+动量加速 预测模型 ====================
 
-def predict_next_day(kline_data, stock_info=None, sector_heat=None):
+def predict_next_day(kline_data, stock_info=None, sector_heat=None, market_env=None):
     """
-    v5: 反转逻辑的次日预测模型
-    
-    ★核心教训：股市短线不是"强者恒强"，而是"物极必反"★
-    - 均线多头排列 → 可能过热，次日回调
-    - 回调企稳 → 蓄势待发，次日反弹
-    - 微涨0~2% → 最危险的"温水煮青蛙"区间
-    - 大跌-2%以上 → 反弹概率最高
-    
-    五大维度（v6维度精简）：
-    1. 回调反弹信号 (★核心★ 权重最大)
-    2. 量价健康度 (缩量回调+放量企稳 = 最强信号)
-    3. 当日涨幅惩罚 (0~2%微涨=死亡区间)
-    4. 动量位置 (超卖反弹 > 超买追涨)
-    5. 板块热度修正 (热门板块回调=买点)
+    v6: 趋势延续+动量加速 预测模型
+
+    ★核心思想转变★
+    v5: "跌多必反弹" → 数据证明完全错误
+    v6: "趋势延续+动量加速" → 顺势而为，找上涨趋势中的加速点
+
+    六大维度（重新设计，消除三重计算）：
+    1. 均线趋势信号 (0-30分) — 均线多头排列是趋势延续的基础
+    2. 放量突破信号 (0-25分) — 资金确认是趋势加速的核心
+    3. 量价健康度 (0-15分) — 涨放量跌缩量=真趋势
+    4. 动量位置 (0-15分) — RSI/KDJ/MACD共振验证
+    5. 板块热度 (0-10分) — 顺势板块>逆势板块
+    6. 大盘环境修正 (±概率) — 系统性风险过滤
+
+    概率基线: 0.18（而非0.30，与实际21.6%胜率匹配）
     """
-    if not kline_data or len(kline_data) < 8:
-        return {'prob': 0.20, 'signals': [], 'score': 20}
-    
+    if not kline_data or len(kline_data) < 20:
+        return {'prob': 0.10, 'signals': [], 'score': 10}
+
     closes = [k['close'] for k in kline_data]
     volumes = [k['volume'] for k in kline_data]
     current = closes[-1]
-    
-    # ★v5: 降低基础概率 — 短线2%+涨幅本就是小概率事件
-    prob = 0.30
+
+    # ★v6: 概率基线0.18 — 2%+涨幅是小概率事件，不要过度自信
+    prob = 0.18
     signals = []
     score = 0
-    
+
+    # 计算均线（需要足够的数据）
     ma5 = calc_ma(closes, 5)
     ma10 = calc_ma(closes, 10)
     ma20 = calc_ma(closes, 20)
-    
+    ma60 = calc_ma(closes, 60) if len(closes) >= 60 else None
+
     # =====================================================
-    # 维度1: 回调反弹信号 (0-35分, ±0.20概率) ★★★核心★★★
-    # 数据铁证: 命中股中3/7是推荐日跌2%+的，0/8的微涨股命中
+    # 维度1: 均线趋势信号 (0-30分, ±0.15概率) ★★★核心★★★
+    # v6思想: 均线多头排列 = 趋势向上，次日大概率延续
     # =====================================================
-    rebound_score = 0
-    
-    if len(closes) >= 5:
-        recent_5_closes = closes[-5:]
-        recent_5_volumes = volumes[-5:]
-        
-        # ★最强信号: 连续回调后今日企稳+放量
-        if (recent_5_closes[-3] < recent_5_closes[-4] and  # 前几天跌
-            recent_5_closes[-1] >= recent_5_closes[-2]):    # 今天企稳
-            rebound_score += 12
-            signals.append("回调企稳形态")
-            
-            # 企稳日放量 → 资金进场确认
-            if recent_5_volumes[-1] > recent_5_volumes[-2] * 1.2:
-                rebound_score += 8
-                signals.append("企稳放量(资金确认)")
-        
-        # ★强信号: 缩量回调（主力未出逃）
-        if len(volumes) >= 5:
-            avg_vol_5 = sum(volumes[-5:]) / 5
-            if recent_5_closes[-2] < recent_5_closes[-3]:  # 昨天回调
-                if recent_5_volumes[-2] < avg_vol_5 * 0.8:  # 缩量回调
-                    rebound_score += 8
-                    signals.append("缩量回调(主力未出)")
-        
-        # ★强信号: 缩量后放量上攻
-        if len(volumes) >= 4:
-            if (volumes[-1] > volumes[-2] * 1.3 and
-                volumes[-2] < volumes[-3] and
-                closes[-1] > closes[-2]):
-                rebound_score += 10
-                signals.append("缩量后放量上攻(★最强)")
-    
-    # 当日跌幅加分 — 数据证明跌幅大的次日表现更好
-    if stock_info:
-        today_change = stock_info.get('changepercent', 0)
-        if today_change <= -2:
-            rebound_score += 10  # 大幅回调，反弹预期强
-            signals.append("深幅回调(反弹预期强)")
-        elif today_change <= -0.5:
-            rebound_score += 6
-            signals.append("小幅回调蓄势")
-        elif today_change < 0:
-            rebound_score += 3
-            signals.append("微跌蓄势")
-    
-    # 近5日最大回撤 > 5% → 有反弹空间
-    if len(closes) >= 5:
-        max_5 = max(closes[-5:])
-        drawdown = (max_5 - current) / max_5 * 100
-        if drawdown >= 5:
-            rebound_score += 5
-            signals.append(f"5日回撤{drawdown:.1f}%(有反弹空间)")
-    
-    if rebound_score >= 20:
-        prob += 0.15
-    elif rebound_score >= 12:
+    trend_score = 0
+
+    if ma5 and ma10 and ma20:
+        # ★最强信号: 均线多头排列 MA5>MA10>MA20
+        if ma5 > ma10 > ma20:
+            trend_score += 15
+            signals.append("均线多头排列(趋势向上)")
+
+            # MA60也多头 → 长线趋势确认
+            if ma60 and ma20 > ma60:
+                trend_score += 8
+                signals.append("长线趋势确认(MA60多头)")
+
+            # 股价在MA5附近（不是远离均线，有支撑）
+            if current >= ma5 * 0.98 and current <= ma5 * 1.03:
+                trend_score += 5
+                signals.append("股价贴近MA5(有支撑)")
+
+        # 均线空头排列 → 趋势向下，大概率继续跌
+        elif ma5 < ma10 < ma20:
+            trend_score -= 10
+            prob -= 0.08
+            signals.append("均线空头排列(趋势向下)")
+        else:
+            # 均线缠绕 → 无明确趋势
+            trend_score += 2
+
+    # MA20趋势方向（即使不是完美多头排列）
+    if ma20:
+        # 5日前的MA20对比（MA20的斜率）
+        if len(closes) >= 25:
+            ma20_5ago = calc_ma(closes[:-5], 20) if len(closes[:-5]) >= 20 else None
+            if ma20_5ago and ma20 > ma20_5ago * 1.01:
+                trend_score += 5
+                signals.append("MA20上行(中期趋势向好)")
+            elif ma20_5ago and ma20 < ma20_5ago * 0.99:
+                trend_score -= 3
+
+    score += max(0, trend_score)
+    if trend_score >= 20:
+        prob += 0.12
+    elif trend_score >= 10:
+        prob += 0.06
+    elif trend_score < 0:
+        prob -= 0.03
+
+    # =====================================================
+    # 维度2: 放量突破信号 (0-25分, ±0.12概率) ★★★核心★★★
+    # v6思想: 放量突破 = 资金进场确认，趋势加速的开始
+    # =====================================================
+    breakout_score = 0
+
+    if len(kline_data) >= 10:
+        avg_vol_10 = sum(volumes[-10:]) / 10
+
+        # ★最强信号: 放量突破前期高点
+        if len(kline_data) >= 20:
+            high_20 = max(k['high'] for k in kline_data[-20:-1])
+            if current > high_20 and volumes[-1] > avg_vol_10 * 1.3:
+                breakout_score += 12
+                signals.append("放量突破20日高点(★强信号)")
+
+        # 放量突破MA20
+        if ma20 and current > ma20 and volumes[-1] > avg_vol_10 * 1.2:
+            breakout_score += 8
+            signals.append("放量站上MA20")
+
+        # 温和放量上涨（非暴涨，而是趋势性放量）
+        if len(closes) >= 3 and len(volumes) >= 3:
+            up_days_3 = sum(1 for i in range(1, 4) if closes[-i] > closes[-i-1])
+            vol_trend = volumes[-1] > volumes[-2] > volumes[-3]
+            if up_days_3 >= 2 and vol_trend and closes[-1] > closes[-3]:
+                breakout_score += 6
+                signals.append("温和放量上涨(趋势延续)")
+
+        # 放量长阳线（涨幅>2%，量比>1.5）
+        if stock_info:
+            today_change = stock_info.get('changepercent', 0)
+            if today_change >= 2 and len(volumes) >= 2:
+                vol_ratio = volumes[-1] / (sum(volumes[-6:-1]) / 5) if len(volumes) >= 6 else 0
+                if vol_ratio > 1.5:
+                    breakout_score += 8
+                    signals.append(f"放量长阳(涨{today_change:.1f}%量比{vol_ratio:.1f})")
+
+        # 突破布林上轨（强势突破信号）
+        boll_upper, boll_mid, boll_lower = calc_boll(closes)
+        if boll_upper and current > boll_upper and volumes[-1] > avg_vol_10:
+            breakout_score += 5
+            signals.append("突破布林上轨(强势)")
+
+    score += max(0, breakout_score)
+    if breakout_score >= 15:
         prob += 0.10
-    elif rebound_score >= 6:
+    elif breakout_score >= 8:
         prob += 0.05
-    score += rebound_score
-    
+
     # =====================================================
-    # 维度2: 量价健康度 (0-25分, ±0.12概率)
+    # 维度3: 量价健康度 (0-15分, ±0.06概率)
     # 核心: 上涨放量+下跌缩量 = 真实趋势
     # =====================================================
     vp_score = 0
-    
-    if len(kline_data) >= 6:
+
+    if len(kline_data) >= 10:
         up_vol_sum = 0
         down_vol_sum = 0
         up_days = 0
         down_days = 0
-        
-        for i in range(1, min(6, len(kline_data))):
+
+        for i in range(1, min(11, len(kline_data))):
             if closes[-i] > closes[-i-1]:
                 up_vol_sum += volumes[-i]
                 up_days += 1
             else:
                 down_vol_sum += volumes[-i]
                 down_days += 1
-        
+
         if up_days > 0 and down_days > 0:
             avg_up_vol = up_vol_sum / up_days
             avg_down_vol = down_vol_sum / down_days
-            
-            if avg_up_vol > avg_down_vol * 1.3:
+
+            if avg_up_vol > avg_down_vol * 1.5:
                 vp_score += 12
                 signals.append("量价健康(涨放量跌缩量)")
-            elif avg_up_vol > avg_down_vol:
-                vp_score += 6
+            elif avg_up_vol > avg_down_vol * 1.2:
+                vp_score += 8
                 signals.append("量价尚可")
+            elif avg_up_vol > avg_down_vol:
+                vp_score += 4
             else:
-                vp_score -= 3
+                # 上涨缩量下跌放量 → 趋势不可靠
+                vp_score -= 5
                 signals.append("量价背离(风险)")
-    
-    if vp_score >= 12:
-        prob += 0.08
-    elif vp_score >= 6:
-        prob += 0.04
-    elif vp_score < 0:
-        prob -= 0.06
+
     score += max(0, vp_score)
-    
+    if vp_score >= 10:
+        prob += 0.05
+    elif vp_score < 0:
+        prob -= 0.04
+
     # =====================================================
-    # 维度3: 当日涨幅惩罚 (★新增★ 0-20分, -0.25概率)
-    # 数据铁证: 推荐日涨0~2% → 胜率0%！
-    # 推荐日跌>2% → 胜率50%
-    # =====================================================
-    day_penalty = 0
-    
-    if stock_info:
-        today_change = stock_info.get('changepercent', 0)
-        
-        if 0 < today_change < 2:
-            # ★死亡区间: 微涨最危险 — 不上不下，次日大概率跌
-            day_penalty -= 15
-            prob -= 0.15
-            signals.append(f"微涨{today_change:.1f}%(⚠️死亡区间)")
-        elif 2 <= today_change < 3:
-            day_penalty -= 8
-            prob -= 0.08
-            signals.append(f"涨{today_change:.1f}%(偏热)")
-        elif 3 <= today_change < 4:
-            day_penalty -= 5
-            prob -= 0.05
-            signals.append(f"涨{today_change:.1f}%(追涨)")
-        elif today_change >= 4:
-            day_penalty -= 10
-            prob -= 0.10
-            signals.append(f"涨{today_change:.1f}%(高位追涨)")
-        elif -1 <= today_change < 0:
-            day_penalty += 5
-            signals.append("微跌(安全)")
-        elif -2 <= today_change < -1:
-            day_penalty += 8
-            signals.append("小跌(较安全)")
-        elif today_change < -2:
-            day_penalty += 10
-            signals.append("大跌(反弹机会)")
-    
-    score += max(0, 10 + day_penalty)  # 基础10分
-    
-    # =====================================================
-    # 维度4: 动量位置 — 超卖区更有价值 (0-20分, ±0.10概率)
-    # ★v5反转: 超卖加分，超买扣分（不追高）
+    # 维度4: 动量位置 (0-15分, ±0.08概率)
+    # v6思想: 寻找动量加速区，不是超卖反弹区
     # =====================================================
     momentum_score = 0
-    
-    # RSI位置 — 超卖反弹优先
+
+    # RSI — 趋势加速区(RSI 50-65)最优
     rsi = calc_rsi(closes, 14)
     if rsi is not None:
-        if 30 <= rsi < 45:
+        if 50 <= rsi <= 65:
+            # ★最佳动量区：趋势确立但未过热
             momentum_score += 8
-            signals.append(f"RSI={rsi:.0f}(超卖区反弹)")
-        elif 45 <= rsi <= 60:
-            momentum_score += 5
-            signals.append(f"RSI={rsi:.0f}(中性偏多)")
-        elif 60 < rsi <= 70:
-            momentum_score += 1
-        elif rsi > 70:
+            signals.append(f"RSI={rsi:.0f}(动量加速区)")
+        elif 65 < rsi <= 75:
+            # 偏强但需警惕
+            momentum_score += 4
+            signals.append(f"RSI={rsi:.0f}(偏强)")
+        elif 40 <= rsi < 50:
+            # 弱势但可能反转
+            momentum_score += 2
+        elif rsi > 75:
+            # 超买，回调风险大
             momentum_score -= 5
             prob -= 0.05
-            signals.append(f"RSI={rsi:.0f}(超买)")
+            signals.append(f"RSI={rsi:.0f}(超买风险)")
         elif rsi < 30:
-            momentum_score += 6
-            signals.append(f"RSI={rsi:.0f}(极度超卖)")
-    
-    # KDJ位置
+            # 极度超卖，v5会加分，但v6认为趋势向下
+            momentum_score -= 3
+            prob -= 0.03
+            signals.append(f"RSI={rsi:.0f}(超卖，趋势弱)")
+
+    # KDJ — 金叉确认趋势加速
     K, D, J = calc_kdj(kline_data)
     if K is not None:
-        if K < D and K < 30:
+        if K > D and K < 65:
             momentum_score += 5
-            signals.append("KDJ超卖(反弹可能)")
-        elif K > D and K < 50:
-            momentum_score += 4
-            signals.append("KDJ低位金叉")
+            if K < 50:
+                signals.append("KDJ低位金叉(趋势启动)")
+            else:
+                signals.append("KDJ金叉(趋势确认)")
         elif K > D and K >= 75:
             momentum_score -= 3
             prob -= 0.03
             signals.append("KDJ超买(谨慎)")
-        if J is not None and J > 100:
-            momentum_score -= 5
-            prob -= 0.05
-            signals.append("J值超100(极度超买)")
-    
-    # MACD — 底部金叉价值高，高位红柱危险
+        elif K < D and K < 30:
+            momentum_score -= 2  # v6: 不再视为超卖反弹机会
+
+    # MACD — 红柱放大=趋势加速
     dif, dea, macd_bar = calc_macd(closes)
     if dif is not None and dea is not None:
-        if dif > dea and dif < 0:
+        if dif > dea and dif > 0:
+            # 零轴上方金叉 = 趋势加速
             momentum_score += 6
-            signals.append("MACD底部金叉(强信号)")
-        elif dif > 0 and dif > dea:
-            momentum_score += 2
-            # 高位红柱 — 不一定是好事，可能过热
-            if current > ma20 * 1.05:  # 远离20日线
-                momentum_score -= 3
-                prob -= 0.03
-                signals.append("MACD高位红柱(可能过热)")
+            signals.append("MACD零轴上方(趋势加速)")
         elif dif > dea and dif < 0:
-            momentum_score += 4
-            signals.append("MACD回升中")
-    
-    if momentum_score >= 10:
-        prob += 0.08
-    elif momentum_score >= 5:
-        prob += 0.04
-    elif momentum_score < 0:
-        prob -= 0.05
+            # 零轴下方金叉 = 趋势可能反转
+            momentum_score += 3
+            signals.append("MACD底部金叉(趋势转强)")
+        elif dif < dea and dif > 0:
+            # 零轴上方死叉 = 趋势可能见顶
+            momentum_score -= 3
+            prob -= 0.03
+            signals.append("MACD高位死叉(警惕)")
+
+        # MACD柱状图趋势
+        if macd_bar and macd_bar > 0:
+            momentum_score += 2
+
     score += max(0, momentum_score)
-    
+    if momentum_score >= 10:
+        prob += 0.06
+    elif momentum_score >= 5:
+        prob += 0.03
+    elif momentum_score < 0:
+        prob -= 0.04
+
     # =====================================================
-    # 维度5: 板块热度修正 (0-15分, ±0.08概率)
-    # ★v5: 热门板块的回调是买点，冷门板块的上涨是卖点
+    # 维度5: 板块热度 (0-10分, ±0.05概率)
+    # v6: 顺势板块加分，逆势板块减分
     # =====================================================
     heat_level = 'warm'
     heat_score_val = 50
@@ -362,102 +374,105 @@ def predict_next_day(kline_data, stock_info=None, sector_heat=None):
         heat_level = sector_heat.get('heat_level', 'warm')
         heat_score_val = sector_heat.get('heat_score', 50)
         sector_name = sector_heat.get('sector_name', '')
-    
-    # 板块热度对回调股的加成
+
+    if heat_level == 'hot':
+        # 热门板块 → 趋势延续概率高
+        score += 8
+        prob += 0.04
+        signals.append(f"热门板块({sector_name})")
+    elif heat_level == 'cold':
+        # 冷门板块 → 即使上涨也可能是反弹
+        score -= 3
+        prob -= 0.03
+        if stock_info and stock_info.get('changepercent', 0) > 2:
+            signals.append(f"冷门板块上涨(可能反弹)")
+    else:
+        score += 2
+
+    # =====================================================
+    # 维度6: ★v6新增★ 大盘环境修正 (±0.10概率)
+    # v5完全没有大盘过滤 → 在熊市依然推荐 → 大面积亏损
+    # =====================================================
+    if market_env:
+        env_level = market_env.get('level', 'neutral')
+        env_score = market_env.get('score', 50)
+
+        if env_level == 'bull':
+            prob += 0.06
+            signals.append("大盘强势(环境友好)")
+        elif env_level == 'bear':
+            prob -= 0.08
+            signals.append("大盘弱势(环境不利)")
+        else:
+            if env_score >= 55:
+                prob += 0.02
+            elif env_score <= 45:
+                prob -= 0.03
+
+    # =====================================================
+    # 当日涨跌幅修正（★仅在此处使用一次★，不再三重计算）
+    # =====================================================
     if stock_info:
         today_change = stock_info.get('changepercent', 0)
-        
-        if heat_level == 'hot':
-            if today_change < 0:
-                # ★热门板块 + 回调 = 最佳买点
-                prob += 0.08
-                score += 10
-                signals.append(f"🔥{sector_name}回调(★最佳买点)")
-            elif today_change < 2:
-                prob += 0.04
-                score += 5
-                signals.append(f"🔥{sector_name}微涨(趋势中)")
-            else:
-                # 热门板块大涨 → 可能短期见顶
-                prob -= 0.03
-                signals.append(f"🔥{sector_name}大涨(注意分歧)")
-        elif heat_level == 'cold':
-            if today_change < -2:
-                # 冷门板块深跌 → 可能继续跌
-                prob -= 0.05
-                signals.append(f"❄️{sector_name}深跌(可能继续)")
-            elif today_change > 0:
-                # 冷门板块上涨 → 多数是反弹而非反转
-                prob -= 0.03
-                signals.append(f"❄️{sector_name}上涨(反弹非反转)")
-    
-    # 连涨天数的板块修正
-    consecutive_up = 0
-    for i in range(len(closes)-1, 0, -1):
-        if closes[i] > closes[i-1]:
-            consecutive_up += 1
-        else:
-            break
-    
-    if consecutive_up >= 5:
-        if heat_level == 'hot':
-            prob -= 0.05  # 热门板块5连涨，趋势延续但需谨慎
-            signals.append(f"5连涨(🔥趋势延续但需谨慎)")
-        else:
-            prob -= 0.15
-            signals.append(f"5连涨(⚠️回调风险高)")
-    elif consecutive_up >= 4:
-        if heat_level == 'hot':
-            prob -= 0.03  # 热门板块4连涨，小幅回调风险
-            signals.append(f"4连涨(🔥趋势延续但需谨慎)")
-        else:
-            prob -= 0.10  # 非热门板块4连涨，回调风险大
-            signals.append(f"4连涨(⚠️动量衰减)")
-    
+
+        # v5问题：涨跌幅在potential_score + tech维度1 + tech维度3 三重使用
+        # v6：涨跌幅只在技术分析中作为一个修正因子，一次性使用
+
+        if today_change >= 2 and today_change <= 5:
+            # 温和上涨+技术形态好 = 趋势延续信号
+            # 这不同于v5的"追涨惩罚"
+            if trend_score >= 10 and breakout_score >= 8:
+                # 趋势好+放量突破+温和上涨 = 最强组合
+                prob += 0.05
+                signals.append("趋势确认上涨(加分)")
+            # 如果没有趋势支撑，单纯上涨是风险
+        elif today_change > 5:
+            # 大涨后回调风险
+            prob -= 0.05
+            signals.append("当日大涨(回调风险)")
+        elif -1 <= today_change <= 1:
+            # 横盘整理，需要方向选择
+            # v5认为这是"安全区"，数据证明8%胜率
+            prob -= 0.02
+        elif today_change < -3:
+            # 大跌，v5认为有反弹机会，数据证明高波动
+            # v6：不主动给加分，趋势延续逻辑下大跌是趋势断裂
+            prob -= 0.03
+
     # =====================================================
     # 最终概率归一化
     # =====================================================
-    prob = max(0.10, min(0.85, prob))
+    prob = max(0.08, min(0.75, prob))
     score = max(0, min(100, score))
 
-    # ★v5: 简化概率校准 — 只用全局偏移，不用桶校准
-    # 原因：桶校准在小样本下极不稳定，且模型概率无区分度
+    # ★v6简化: 概率校准 — 全局偏移
     prob = _simple_calibrate(prob)
 
     return {
         'prob': prob,
         'signals': signals,
         'score': score,
-        'trend_score': 0,  # v5: 不再使用趋势延续性
-        'rebound_score': rebound_score,
+        'trend_score': max(0, trend_score),
+        'breakout_score': max(0, breakout_score),
         'vp_score': max(0, vp_score),
-        'breakout_score': 0,  # v5: 不再使用突破信号
         'momentum_score': max(0, momentum_score),
-        'decay_penalty': 0,
     }
 
 
 def _simple_calibrate(raw_prob):
-    """
-    ★v5简化校准: 只做全局偏移，不做桶校准
-    
-    原因: 
-    1. 模型概率是反向指标，桶校准只会让高概率降更多
-    2. 38个样本做桶校准统计意义不足
-    3. 全局偏移已经够用（如果模型整体偏高就减一点）
-    """
+    """v6简化校准: 只做全局偏移"""
     calibration = load_calibration()
     offset = calibration.get('offset', 0.0)
     if offset != 0.0:
         calibrated = raw_prob + offset
-        return max(0.15, min(0.85, calibrated))
+        return max(0.08, min(0.75, calibrated))
     return raw_prob
 
 
 # ==================== 兼容旧接口 ====================
 
 def tech_score(kline_data, realtime=None):
-    """综合技术评分 (0-100) — 基于前瞻性模型"""
+    """综合技术评分 (0-100)"""
     result = predict_next_day(kline_data, realtime)
     return result['score']
 
@@ -490,13 +505,10 @@ def estimate_next_day_prob(kline_data, realtime=None):
     return result['prob']
 
 
-# ==================== 概率校准模块 v5 (简化版) ====================
+# ==================== 概率校准模块 v6 ====================
 
 def load_calibration():
-    """
-    从 data/config/strategy_params.json 加载概率校准参数
-    返回: {'offset': float}
-    """
+    """从 data/config/strategy_params.json 加载概率校准参数"""
     data_dir = os.environ.get('DATA_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data'))
     params_file = os.path.join(data_dir, 'config', 'strategy_params.json')
     if os.path.exists(params_file):
@@ -504,26 +516,18 @@ def load_calibration():
             with open(params_file, 'r') as f:
                 data = json.load(f)
                 cal = data.get('prob_calibration', {})
-                # v5: 只返回offset，忽略bucket_calibrations
                 return {'offset': cal.get('offset', 0.0)}
         except (json.JSONDecodeError, IOError):
             pass
     return {'offset': 0.0}
 
 
-# ★保留兼容接口但不再使用桶校准
 def calibrate_probability(raw_prob, calibration=None):
-    """
-    v5: 简化概率校准
-    只用全局偏移，不做桶校准
-    保底0.15
-    """
+    """v6概率校准"""
     if calibration is None:
         calibration = load_calibration()
-    
     offset = calibration.get('offset', 0.0)
     if offset != 0.0:
         calibrated = raw_prob + offset
-        return max(0.15, min(0.85, calibrated))
-    
+        return max(0.08, min(0.75, calibrated))
     return raw_prob
