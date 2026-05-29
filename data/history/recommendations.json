@@ -1681,5 +1681,61 @@
       "up_ratio": 0.5
     },
     "result": null
+  },
+  {
+    "date": "2026-05-28",
+    "symbol": "sh600021",
+    "name": "上海电力",
+    "category": "pick",
+    "recommend_price": 21.17,
+    "recommend_change": 2.82,
+    "trend_score": 100,
+    "potential_score": 100,
+    "tech_score": 85,
+    "next_day_prob": 0.62,
+    "total_score": 85.7,
+    "signals": [
+      "均线多头排列(趋势向上)",
+      "MA20上行(中期趋势向好)",
+      "放量突破20日高点(★强信号)",
+      "放量站上MA20"
+    ],
+    "sector_heat": {
+      "sector_code": "",
+      "sector_name": "电力行业",
+      "heat_score": 55,
+      "heat_level": "warm",
+      "sector_change": 1.5,
+      "up_ratio": 0.6
+    },
+    "result": null
+  },
+  {
+    "date": "2026-05-28",
+    "symbol": "sz000969",
+    "name": "安泰科技",
+    "category": "pick",
+    "recommend_price": 25.51,
+    "recommend_change": 4.72,
+    "trend_score": 92,
+    "potential_score": 92,
+    "tech_score": 84,
+    "next_day_prob": 0.56,
+    "total_score": 81.2,
+    "signals": [
+      "均线多头排列(趋势向上)",
+      "长线趋势确认(MA60多头)",
+      "MA20上行(中期趋势向好)",
+      "放量突破20日高点(★强信号)"
+    ],
+    "sector_heat": {
+      "sector_code": "",
+      "sector_name": "有色金属",
+      "heat_score": 55,
+      "heat_level": "warm",
+      "sector_change": 1.2,
+      "up_ratio": 0.6
+    },
+    "result": null
   }
 ]

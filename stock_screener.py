@@ -552,10 +552,19 @@ class StrategyOptimizer:
         """
         ★v6: 使用max_profit作为命中标准
         v5: next_day_change >= 2 为命中（只看收盘）
-        v6: max_profit >= 2 为命中（看日内最高价）
-        原因: 短线操作可在日内止盈
+        v6: max_profit >= 2 为命中（看日内最高价相对于推荐价）
+        原因: 短线操作可在日内止盈，收益应从推荐买入价算起
         """
-        max_profit = (next_day_high - next_day_open) / next_day_open * 100 if next_day_open > 0 else 0
+        # ★关键: max_profit应从推荐价算起，不是从开盘价
+        # 找到推荐记录获取推荐价
+        rec_price = None
+        for rec in self.history:
+            if rec['symbol'] == symbol and rec['date'] == date:
+                rec_price = rec.get('recommend_price', next_day_open)
+                break
+
+        base_price = rec_price if rec_price and rec_price > 0 else next_day_open
+        max_profit = (next_day_high - base_price) / base_price * 100 if base_price > 0 else 0
 
         for rec in self.history:
             if rec['symbol'] == symbol and rec['date'] == date:
