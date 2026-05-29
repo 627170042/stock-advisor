@@ -290,28 +290,37 @@ def get_market_environment():
         sz_change = sz.get('change_pct', 0)
         cyb_change = cyb.get('change_pct', 0)
 
-        # 大盘涨跌幅评分 (0-40分)
+        # 大盘涨跌幅评分 (基准30分 + 加减分)
+        # ★v6修正: 基准分调低，加减分更均匀，避免小幅下跌就变bear
         avg_change = (sh_change + sz_change) / 2
-        if avg_change >= 1.5:
-            env['score'] += 30
+        if avg_change >= 2.0:
+            env['score'] += 25
+        elif avg_change >= 1.0:
+            env['score'] += 18
         elif avg_change >= 0.5:
-            env['score'] += 20
+            env['score'] += 12
         elif avg_change >= 0:
-            env['score'] += 10
+            env['score'] += 5
         elif avg_change >= -0.5:
             env['score'] += 0
-        elif avg_change >= -1.5:
-            env['score'] -= 15
+        elif avg_change >= -1.0:
+            env['score'] -= 5
+        elif avg_change >= -2.0:
+            env['score'] -= 12
         else:
-            env['score'] -= 30
+            env['score'] -= 20
 
-        # 创业板独立评估 (0-20分)
-        if cyb_change >= 1:
-            env['score'] += 15
+        # 创业板独立评估
+        if cyb_change >= 1.5:
+            env['score'] += 10
         elif cyb_change >= 0:
-            env['score'] += 5
-        elif cyb_change <= -1.5:
-            env['score'] -= 10
+            env['score'] += 3
+        elif cyb_change >= -0.5:
+            env['score'] += 0
+        elif cyb_change >= -1.5:
+            env['score'] -= 5
+        else:
+            env['score'] -= 8
 
     # 2. 获取涨跌家数比
     adv_dec = get_advance_decline_ratio()
@@ -331,12 +340,13 @@ def get_market_environment():
             env['score'] -= 15
 
     # 3. 综合评定
+    # ★v6修正: 只有大跌(指数跌>2.5%)才暂停推荐，正常震荡可谨慎选股
     env['score'] = max(0, min(100, env['score']))
 
-    if env['score'] >= 70:
+    if env['score'] >= 60:
         env['level'] = 'bull'
         env['signal'] = '适合选股'
-    elif env['score'] >= 40:
+    elif env['score'] >= 30:
         env['level'] = 'neutral'
         env['signal'] = '谨慎选股'
     else:

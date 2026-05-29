@@ -83,9 +83,9 @@ def filter_market_environment(market_env):
     env_score = market_env.get('score', 50)
     env_level = market_env.get('level', 'neutral')
 
-    if env_score < 25:
+    if env_score < 15:
         return False, f"大盘极弱({env_score}分)"
-    if env_level == 'bear' and env_score < 30:
+    if env_level == 'bear' and env_score < 20:
         return False, f"熊市环境({env_score}分)"
 
     return True, f"环境{env_level}({env_score}分)"

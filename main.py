@@ -118,7 +118,7 @@ def run_daily_recommendation():
     market_env = get_market_environment()
     env_level = market_env.get('level', 'neutral')
     env_score = market_env.get('score', 50)
-    if env_score < 25 or (env_level == 'bear' and env_score < 30):
+    if env_score < 15:
         print(f"  ⚠️ 大盘环境极弱({env_score}分)，今日暂停推荐")
         report = f"""
 {'='*70}

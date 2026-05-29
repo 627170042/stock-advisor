@@ -1650,7 +1650,15 @@
       "sector_change": 0.58157006239946,
       "up_ratio": 0.6
     },
-    "result": null
+    "result": {
+      "next_day_open": 7.88,
+      "next_day_high": 8.5,
+      "next_day_close": 8.43,
+      "next_day_change": 22.0,
+      "hit": true,
+      "max_profit": 23.01,
+      "close_hit": true
+    }
   },
   {
     "date": "2026-05-22",
@@ -1680,7 +1688,15 @@
       "sector_change": 0,
       "up_ratio": 0.5
     },
-    "result": null
+    "result": {
+      "next_day_open": 237.0,
+      "next_day_high": 241.69,
+      "next_day_close": 228.88,
+      "next_day_change": 0.85,
+      "hit": true,
+      "max_profit": 6.49,
+      "close_hit": false
+    }
   },
   {
     "date": "2026-05-28",
@@ -1708,7 +1724,15 @@
       "sector_change": 1.5,
       "up_ratio": 0.6
     },
-    "result": null
+    "result": {
+      "next_day_open": 21.0,
+      "next_day_high": 22.35,
+      "next_day_close": 21.8,
+      "next_day_change": 2.93,
+      "hit": true,
+      "max_profit": 6.43,
+      "close_hit": true
+    }
   },
   {
     "date": "2026-05-28",
@@ -1736,6 +1760,14 @@
       "sector_change": 1.2,
       "up_ratio": 0.6
     },
-    "result": null
+    "result": {
+      "next_day_open": 25.05,
+      "next_day_high": 25.62,
+      "next_day_close": 22.98,
+      "next_day_change": -9.92,
+      "hit": false,
+      "max_profit": 0.43,
+      "close_hit": false
+    }
   }
 ]
