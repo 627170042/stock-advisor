@@ -154,7 +154,11 @@ def run_daily_recommendation():
 
     # 执行筛选
     print("\n步骤1: 筛选今日推荐...")
-    candidates = screen_stocks(max_candidates=25, params=optimizer.PARAMS)
+    # ★优化: 先建候选池，再传入screen_stocks避免重复扫描
+    from stock_screener import build_candidate_pool
+    all_stocks = build_candidate_pool()
+    candidates = screen_stocks(max_candidates=25, preloaded_stocks=all_stocks,
+                               params=optimizer.PARAMS, market_env=market_env)
 
     if not candidates:
         print("  未找到符合条件的股票")

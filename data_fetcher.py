@@ -145,11 +145,127 @@ def get_stock_list(page=1, num=80, sort='amount', asc=0, node='hs_a'):
 def scan_all_a_stocks(min_amount=50000000, min_turnover=1.0):
     """
     ★v6新增: 全A股扫描
-    分页遍历所有A股，按成交额排序
+    优先使用东方财富API（一次请求获取全部），降级用新浪分页
     过滤条件: 成交额 >= min_amount, 换手率 >= min_turnover
     返回: dict {symbol: stock_info}
     """
     print("  [v6] 全A股扫描开始...")
+
+    # 优先尝试东方财富（一次请求全量数据，极快）
+    result = _scan_eastmoney(min_amount, min_turnover)
+    if result and len(result) >= 500:
+        return result
+
+    # 降级: 新浪分页扫描
+    print("  东方财富数据不足，降级新浪分页扫描...")
+    return _scan_sina_pages(min_amount, min_turnover)
+
+
+def _scan_eastmoney(min_amount=50000000, min_turnover=1.0):
+    """东方财富全A股扫描（一次请求，极速）"""
+    all_stocks = {}
+    try:
+        url = 'https://push2.eastmoney.com/api/qt/clist/get'
+        params = {
+            'cb': 'jQuery',
+            'pn': 1,
+            'pz': 6000,  # 一次获取6000条
+            'po': '1',
+            'np': '1',
+            'ut': 'bd1d9ddb04089700cf9c27f6f7426281',
+            'fltt': '2',
+            'invt': '2',
+            'fid': 'f6',  # 按成交额排序
+            'fs': 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048',
+            'fields': 'f2,f3,f4,f5,f6,f7,f8,f9,f12,f14,f15,f16,f17,f18,f20,f23',
+        }
+        # 重试3次
+        for attempt in range(3):
+            try:
+                r = requests.get(url, params=params, headers=EM_HEADERS, timeout=30)
+                text = re.sub(r'^jQuery\(', '', r.text)
+                text = re.sub(r'\)$', '', text)
+                data = json.loads(text)
+                items = data.get('data', {}).get('diff', [])
+                if items:
+                    break
+            except Exception as e:
+                print(f"  东方财富请求第{attempt+1}次失败: {e}")
+                time.sleep(1)
+        else:
+            return {}
+
+        total = data.get('data', {}).get('total', 0)
+
+        if not items:
+            return {}
+
+        for item in items:
+            try:
+                code_raw = item.get('f12', '')
+                name = item.get('f14', '')
+                price = float(item.get('f2', 0) or 0)
+                change_pct = float(item.get('f3', 0) or 0)
+                amount = float(item.get('f6', 0) or 0)  # 成交额
+                turnover = float(item.get('f8', 0) or 0)  # 换手率
+                mktcap = float(item.get('f20', 0) or 0)  # 总市值
+                nmc = float(item.get('f23', 0) or 0)  # 流通市值
+                high = float(item.get('f15', 0) or 0)
+                low = float(item.get('f16', 0) or 0)
+                open_p = float(item.get('f17', 0) or 0)
+                prev_close = float(item.get('f18', 0) or 0)
+
+                # 构造symbol格式
+                if code_raw.startswith('6'):
+                    symbol = f'sh{code_raw}'
+                elif code_raw.startswith('0') or code_raw.startswith('3'):
+                    symbol = f'sz{code_raw}'
+                else:
+                    continue
+
+                # 基本过滤
+                if price <= 0 or 'ST' in name or 'st' in name:
+                    continue
+                if amount < min_amount or turnover < min_turnover:
+                    continue
+                board = classify_board(symbol)
+                if board == 'bse':
+                    continue
+
+                all_stocks[symbol] = {
+                    'symbol': symbol,
+                    'code': code_raw,
+                    'name': name,
+                    'trade': price,
+                    'pricechange': price - prev_close if prev_close > 0 else 0,
+                    'changepercent': change_pct,
+                    'buy': 0,
+                    'sell': 0,
+                    'settlement': prev_close,
+                    'open': open_p,
+                    'high': high,
+                    'low': low,
+                    'volume': 0,
+                    'amount': amount,
+                    'turnoverratio': turnover,
+                    'per': 0,
+                    'pb': 0,
+                    'mktcap': mktcap,
+                    'nmc': nmc,
+                }
+            except (ValueError, TypeError, KeyError):
+                continue
+
+        print(f"  [v6] 东方财富扫描完成: 共{total}只, 符合条件{len(all_stocks)}只")
+        return all_stocks
+
+    except Exception as e:
+        print(f"  东方财富扫描失败: {e}")
+        return {}
+
+
+def _scan_sina_pages(min_amount=50000000, min_turnover=1.0):
+    """新浪分页扫描（降级方案）"""
     all_stocks = {}
     page = 1
     total_scanned = 0
@@ -160,13 +276,12 @@ def scan_all_a_stocks(min_amount=50000000, min_turnover=1.0):
             break
 
         total_scanned += len(stocks)
+        page_has_qualifying = False
 
         for s in stocks:
-            # 基本过滤
             if s.get('amount', 0) < min_amount:
-                # 按成交额降序排列，后面的更小，可以提前退出
-                # 但为了完整扫描，继续获取
-                continue
+                continue  # 按成交额降序，后面更小，但换手率高的可能在不同页
+            page_has_qualifying = True
             if s.get('turnoverratio', 0) < min_turnover:
                 continue
             if 'ST' in s.get('name', '') or 'st' in s.get('name', ''):
@@ -179,13 +294,15 @@ def scan_all_a_stocks(min_amount=50000000, min_turnover=1.0):
 
             all_stocks[s['symbol']] = s
 
+        # ★优化: 如果连续2页没有符合条件的，提前退出
         page += 1
-        # 安全限制：最多扫描100页
         if page > 100:
+            break
+        if not page_has_qualifying and page > 5:
             break
         time.sleep(0.15)
 
-    print(f"  [v6] 全A股扫描完成: 共扫描{total_scanned}只, 符合条件{len(all_stocks)}只")
+    print(f"  [v6] 新浪扫描完成: 共扫描{total_scanned}只, 符合条件{len(all_stocks)}只")
     return all_stocks
 
 

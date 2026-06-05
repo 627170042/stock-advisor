@@ -178,9 +178,15 @@ def test_filter_basic():
 def test_filter_market_env():
     """★v6: 大盘环境过滤"""
     from stock_screener import filter_market_environment
-    # bear+低分应过滤
+    # bear+极低分(<15)应过滤
+    ok, _ = filter_market_environment({'level': 'bear', 'score': 10})
+    assert not ok, "bear+10分应被过滤"
+    # bear+低分(<20)应过滤
+    ok, _ = filter_market_environment({'level': 'bear', 'score': 18})
+    assert not ok, "bear+18分应被过滤"
+    # bear+20分属于边界，不强制过滤（正常下跌不应暂停推荐）
     ok, _ = filter_market_environment({'level': 'bear', 'score': 20})
-    assert not ok, "bear+20分应被过滤"
+    assert ok, "bear+20分属于边界允许（谨慎选股）"
     # neutral应通过
     ok, _ = filter_market_environment({'level': 'neutral', 'score': 50})
     assert ok, "neutral+50分应通过"

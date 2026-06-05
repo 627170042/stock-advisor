@@ -3,7 +3,7 @@ name: A股T+1选股系统
 on:
   # ★主调度：GitHub schedule提前触发，workflow内等待到正确时间再执行
   # schedule在私有仓库上延迟严重（可能延迟5-12小时），所以cron设在UTC 00:00
-  # workflow启动后会等待到北京时间14:00/14:25再执行实际任务
+  # workflow启动后会等待到北京时间14:00再执行实际任务
   schedule:
     - cron: '0 0 * * 1-5'    # UTC 00:00 = 北京08:00，workflow内等14:00执行
   # 手动/外部触发（立即执行，不等待）
@@ -17,25 +17,24 @@ on:
         default: 'check'
 
 jobs:
-  # 交易日检查 + 确定任务类型
+  # 交易日检查
   trading-day-check:
     runs-on: ubuntu-latest
     outputs:
       is_trading_day: ${{ steps.check.outputs.is_trading_day }}
-      task_type: ${{ steps.task.outputs.task_type }}
     steps:
       - id: check
         run: |
           BJ_DOW=$(TZ=Asia/Shanghai date +%u)
           TODAY=$(TZ=Asia/Shanghai date +%Y-%m-%d)
-          
+
           # 周末直接跳过
           if [ "$BJ_DOW" -gt 5 ]; then
             echo "is_trading_day=false" >> $GITHUB_OUTPUT
             echo "周末，非交易日"
             exit 0
           fi
-          
+
           # 节假日检查
           git clone --depth=1 -b data https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git /tmp/data 2>/dev/null || true
           if [ -f /tmp/data/data/config/holidays.json ]; then
@@ -49,156 +48,14 @@ jobs:
               fi
             done
           fi
-          
+
           echo "is_trading_day=true" >> $GITHUB_OUTPUT
           echo "交易日确认"
 
-      - id: task
-        run: |
-          # 确定任务类型
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            echo "task_type=${{ github.event.action }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "task_type=${{ github.event.inputs.task }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event_name }}" = "schedule" ]; then
-            # schedule触发时，根据北京时间判断该执行什么
-            BJ_HOUR=$(TZ=Asia/Shanghai date +%H)
-            BJ_MIN=$(TZ=Asia/Shanghai date +%M)
-            BJ_MINS=$((10#$BJ_HOUR * 60 + 10#$BJ_MIN))
-            
-            if [ $BJ_MINS -lt 840 ]; then
-              # 还没到14:00，先执行复盘
-              echo "task_type=review" >> $GITHUB_OUTPUT
-            else
-              # 已过14:00，先检查复盘是否完成，然后执行推荐
-              echo "task_type=recommend" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "task_type=check" >> $GITHUB_OUTPUT
-          fi
-
-  # ★等待到正确时间（仅schedule触发时等待，手动触发不等待）
+  # ★等待到北京时间14:00（仅schedule触发时等待）
   wait-until-time:
     needs: trading-day-check
     if: needs.trading-day-check.outputs.is_trading_day == 'true'
-    runs-on: ubuntu-latest
-    outputs:
-      should_review: ${{ steps.wait.outputs.should_review }}
-      should_recommend: ${{ steps.wait.outputs.should_recommend }}
-    steps:
-      - id: wait
-        run: |
-          TASK="${{ needs.trading-day-check.outputs.task_type }}"
-          
-          if [ "${{ github.event_name }}" != "schedule" ]; then
-            # 非schedule触发，不等待，直接根据任务类型执行
-            echo "非schedule触发，跳过等待"
-            if [ "$TASK" = "review" ]; then
-              echo "should_review=true" >> $GITHUB_OUTPUT
-              echo "should_recommend=false" >> $GITHUB_OUTPUT
-            elif [ "$TASK" = "recommend" ]; then
-              echo "should_review=false" >> $GITHUB_OUTPUT
-              echo "should_recommend=true" >> $GITHUB_OUTPUT
-            else
-              echo "should_review=false" >> $GITHUB_OUTPUT
-              echo "should_recommend=false" >> $GITHUB_OUTPUT
-            fi
-            exit 0
-          fi
-          
-          # schedule触发：等待到北京时间14:00执行复盘
-          echo "等待到北京时间14:00..."
-          while true; do
-            BJ_HOUR=$(TZ=Asia/Shanghai date +%H)
-            BJ_MIN=$(TZ=Asia/Shanghai date +%M)
-            BJ_MINS=$((10#$BJ_HOUR * 60 + 10#$BJ_MIN))
-            
-            if [ $BJ_MINS -ge 840 ]; then
-              echo "已到北京时间14:00，开始执行"
-              break
-            fi
-            
-            REMAINING=$((840 - BJ_MINS))
-            echo "当前北京时间 ${BJ_HOUR}:${BJ_MIN}，还需等待 ${REMAINING} 分钟..."
-            sleep 60
-          done
-          
-          # schedule触发时两个任务都执行（先复盘后推荐）
-          echo "should_review=true" >> $GITHUB_OUTPUT
-          echo "should_recommend=true" >> $GITHUB_OUTPUT
-
-  recommend:
-    needs: [trading-day-check, wait-until-time]
-    if: >-
-      needs.trading-day-check.outputs.is_trading_day == 'true' && 
-      needs.wait-until-time.outputs.should_recommend == 'true'
-    runs-on: ubuntu-latest
-    # 推荐在复盘之后执行（等待到北京时间14:25）
-    steps:
-      - name: Wait until 14:25 Beijing time
-        if: github.event_name == 'schedule'
-        run: |
-          echo "等待到北京时间14:25..."
-          while true; do
-            BJ_HOUR=$(TZ=Asia/Shanghai date +%H)
-            BJ_MIN=$(TZ=Asia/Shanghai date +%M)
-            BJ_MINS=$((10#$BJ_HOUR * 60 + 10#$BJ_MIN))
-            
-            if [ $BJ_MINS -ge 865 ]; then
-              echo "已到北京时间14:25，开始推荐"
-              break
-            fi
-            
-            REMAINING=$((865 - BJ_MINS))
-            echo "当前北京时间 ${BJ_HOUR}:${BJ_MIN}，还需等待 ${REMAINING} 分钟..."
-            sleep 60
-          done
-          
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-          token: ${{ secrets.GH_PAT }}
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Pre-flight test
-        run: python test_suite.py
-        continue-on-error: true
-      - name: Restore data
-        run: |
-          git fetch origin data 2>/dev/null || true
-          if git branch -r | grep -q "origin/data"; then
-            git checkout origin/data -- data/ 2>/dev/null || true
-          else
-            mkdir -p data/history data/reports data/config
-          fi
-      - name: Run recommendation
-        env:
-          WECHAT_WEBHOOK_URL: ${{ secrets.WECHAT_WEBHOOK_URL }}
-          DATA_DIR: ./data
-        run: python main.py
-      - name: Save data
-        run: |
-          git config user.name "Stock Bot"
-          git config user.email "627170042@qq.com"
-          git add data/ 2>/dev/null || true
-          if ! git diff --staged --quiet; then
-            git commit -m "recommend $(TZ=Asia/Shanghai date +%Y-%m-%d)"
-            git push origin HEAD:data --force
-            echo "Data saved"
-          else
-            echo "No data changes"
-          fi
-
-  review:
-    needs: [trading-day-check, wait-until-time]
-    if: >-
-      needs.trading-day-check.outputs.is_trading_day == 'true' && 
-      needs.wait-until-time.outputs.should_review == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Wait until 14:00 Beijing time
@@ -209,17 +66,32 @@ jobs:
             BJ_HOUR=$(TZ=Asia/Shanghai date +%H)
             BJ_MIN=$(TZ=Asia/Shanghai date +%M)
             BJ_MINS=$((10#$BJ_HOUR * 60 + 10#$BJ_MIN))
-            
+
             if [ $BJ_MINS -ge 840 ]; then
-              echo "已到北京时间14:00，开始复盘"
+              echo "已到北京时间14:00，开始执行"
               break
             fi
-            
+
             REMAINING=$((840 - BJ_MINS))
             echo "当前北京时间 ${BJ_HOUR}:${BJ_MIN}，还需等待 ${REMAINING} 分钟..."
             sleep 60
           done
-          
+
+  # ★复盘（14:00执行）→ 优化参数 → 推送到data分支
+  review:
+    needs: [trading-day-check, wait-until-time]
+    if: needs.trading-day-check.outputs.is_trading_day == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait until 14:00 Beijing time
+        if: github.event_name == 'schedule'
+        run: |
+          while true; do
+            BJ_MINS=$((10#$(TZ=Asia/Shanghai date +%H) * 60 + 10#$(TZ=Asia/Shanghai date +%M)))
+            [ $BJ_MINS -ge 840 ] && break
+            sleep 60
+          done
+
       - uses: actions/checkout@v4
         with:
           ref: main
@@ -251,11 +123,58 @@ jobs:
         run: |
           git config user.name "Stock Bot"
           git config user.email "627170042@qq.com"
-          git add data/ 2>/dev/null || true
+          git add -f data/ 2>/dev/null || true
           if ! git diff --staged --quiet; then
             git commit -m "review $(TZ=Asia/Shanghai date +%Y-%m-%d)"
             git push origin HEAD:data --force
-            echo "Data saved"
+            echo "Review data saved"
+          else
+            echo "No data changes"
+          fi
+
+  # ★推荐（依赖review完成后执行）→ 读取最新优化参数 → 推荐 → 推送
+  recommend:
+    needs: [trading-day-check, wait-until-time, review]
+    if: needs.trading-day-check.outputs.is_trading_day == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Pre-flight test
+        run: python test_suite.py
+        continue-on-error: true
+      - name: Restore data (includes review-optimized params)
+        run: |
+          git fetch origin data 2>/dev/null || true
+          if git branch -r | grep -q "origin/data"; then
+            git checkout origin/data -- data/ 2>/dev/null || true
+          else
+            mkdir -p data/history data/reports data/config
+          fi
+          echo "✅ 数据已从data分支恢复（包含复盘优化参数）"
+      - name: Run recommendation
+        env:
+          WECHAT_WEBHOOK_URL: ${{ secrets.WECHAT_WEBHOOK_URL }}
+          DATA_DIR: ./data
+        run: python main.py
+      - name: Save data
+        run: |
+          git config user.name "Stock Bot"
+          git config user.email "627170042@qq.com"
+          git add -f data/ 2>/dev/null || true
+          if ! git diff --staged --quiet; then
+            git commit -m "recommend $(TZ=Asia/Shanghai date +%Y-%m-%d)"
+            git push origin HEAD:data --force
+            echo "Recommend data saved"
           else
             echo "No data changes"
           fi

@@ -128,6 +128,46 @@ def filter_recent_recommendations(stock, history_file, blacklist_days=10):
 
 # ==================== v6: 趋势延续+动量加速 评分 ====================
 
+def _quick_sector_match(stock_code, stock_name, sector_map):
+    """
+    ★v6优化: 快速板块匹配（仅用名称关键词，不查F10）
+    用于初筛阶段，避免对2000+候选股都做F10查询+0.15s sleep
+    深度分析阶段再用 get_sector_heat_for_stock 做精确匹配
+    """
+    if not sector_map or not sector_map._loaded:
+        return None
+
+    # 直接用名称关键词匹配
+    best_match = None
+    best_score = 0
+    for sector_key, sector_info in sector_map.sectors_data.items():
+        sector_name = sector_info['name']
+        keywords = sector_map.SINA_KEYWORDS.get(sector_name, [])
+        match_score = 0
+        for kw in keywords:
+            if kw in stock_name:
+                match_score += 3
+        # 也用板块名匹配
+        for char in sector_name:
+            if char in stock_name and char not in '股份集团科技电子':
+                match_score += 1
+        if match_score > best_score:
+            best_score = match_score
+            best_match = sector_key
+
+    if best_match and best_score >= 3:
+        sector_info = sector_map.sectors_data[best_match]
+        heat_score = sector_info['heat_score']
+        return {
+            'sector_code': best_match,
+            'sector_name': sector_info['name'],
+            'heat_score': heat_score,
+            'heat_level': 'hot' if heat_score >= 70 else ('warm' if heat_score >= 40 else 'cold'),
+            'sector_change': sector_info['change_pct'],
+            'up_ratio': 0.6 if sector_info['change_pct'] > 0 else 0.4,
+        }
+    return None
+
 def score_trend_continuation(stock, kline=None):
     """
     ★v6核心: 趋势延续+动量加速评分
@@ -237,7 +277,7 @@ def build_candidate_pool():
     return all_stocks
 
 
-def screen_stocks(max_candidates=25, preloaded_stocks=None, params=None):
+def screen_stocks(max_candidates=25, preloaded_stocks=None, params=None, market_env=None):
     """
     ★v6: 单一类别筛选流程
     v5: Budget/Strong双类别 → v6: 统一为"高概率候选"
@@ -263,9 +303,10 @@ def screen_stocks(max_candidates=25, preloaded_stocks=None, params=None):
     print(f"  参数: 概率门槛={min_prob_threshold:.0%}, 黑名单={repeat_blacklist_days}日")
     print(f"  权重: 趋势={weight_trend:.2f}, 技术={weight_tech:.2f}, 概率={weight_prob:.2f}")
 
-    # ★v6新增: 大盘环境检查
+    # ★v6新增: 大盘环境检查（可传入已有结果避免重复请求）
     print("\n  [v6] 大盘环境检查...")
-    market_env = get_market_environment()
+    if market_env is None:
+        market_env = get_market_environment()
     env_pass, env_reason = filter_market_environment(market_env)
     if not env_pass:
         print(f"  ⚠️ {env_reason}，今日不宜推荐")
@@ -279,7 +320,7 @@ def screen_stocks(max_candidates=25, preloaded_stocks=None, params=None):
     else:
         all_stocks = build_candidate_pool()
 
-    # 加载板块热度数据
+    # 加载板块热度数据（仅加载板块列表，不做个股匹配）
     from sector_heat import SectorHeatMap
     sector_map = SectorHeatMap()
     try:
@@ -309,10 +350,9 @@ def screen_stocks(max_candidates=25, preloaded_stocks=None, params=None):
             filter_stats['repeat'] += 1
             continue
 
-        # 获取板块热度
-        from sector_heat import get_sector_heat_for_stock
-        stock_sector_heat = get_sector_heat_for_stock(symbol, stock.get('name', ''), sector_map)
-        stock['sector_heat'] = stock_sector_heat
+        # ★v6优化: 板块匹配延迟到趋势筛选之后
+        # 先用简单的名称关键词匹配（无F10查询，无sleep）
+        stock['sector_heat'] = _quick_sector_match(symbol, stock.get('name', ''), sector_map)
 
         # ★v6: 趋势延续评分（替代v5的potential_score）
         # 先用简单评分筛选，减少后续K线获取量
@@ -332,13 +372,18 @@ def screen_stocks(max_candidates=25, preloaded_stocks=None, params=None):
     candidates.sort(key=lambda x: x['trend_score'], reverse=True)
     analyze_count = min(len(candidates), max_candidates)
 
-    # 深度技术分析
+    # 深度技术分析（仅对Top N做F10板块匹配 + K线分析）
     print(f"[3/4] 深度技术分析（Top {analyze_count}）...")
+    from sector_heat import get_sector_heat_for_stock
     scored_candidates = []
 
     for i, stock in enumerate(candidates[:analyze_count]):
         symbol = stock['symbol']
         try:
+            # ★优化: 仅对Top N做F10板块匹配（精确版）
+            stock_sector_heat = get_sector_heat_for_stock(symbol, stock.get('name', ''), sector_map)
+            stock['sector_heat'] = stock_sector_heat
+
             # ★v6关键: K线从20根→120根
             kline = get_kline_sina(symbol, '240', '120')
             if not kline or len(kline) < 20:
