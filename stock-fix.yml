@@ -1,0 +1,195 @@
+name: A股T+1选股系统
+
+on:
+  schedule:
+    - cron: '0 0 * * 1-5'    # UTC 00:00 = 北京08:00
+  repository_dispatch:
+    types: [recommend, review, check]
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'recommend / review / check'
+        required: true
+        default: 'check'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+# GITHUB_TOKEN需要写入权限以推送data分支
+permissions:
+  contents: write
+
+jobs:
+  # 交易日检查
+  trading-day-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_trading_day: ${{ steps.check.outputs.is_trading_day }}
+    steps:
+      - id: check
+        run: |
+          BJ_DOW=$(TZ=Asia/Shanghai date +%u)
+          TODAY=$(TZ=Asia/Shanghai date +%Y-%m-%d)
+
+          if [ "$BJ_DOW" -gt 5 ]; then
+            echo "is_trading_day=false" >> $GITHUB_OUTPUT
+            echo "周末，非交易日"
+            exit 0
+          fi
+
+          # 节假日检查
+          git clone --depth=1 -b data https://github.com/${{ github.repository }}.git /tmp/data 2>/dev/null || true
+          if [ -f /tmp/data/data/config/holidays.json ]; then
+            YEAR=$(echo $TODAY | cut -c1-4)
+            HOLIDAYS=$(python3 -c "import json; d=json.load(open('/tmp/data/data/config/holidays.json')); print(' '.join(d.get('$YEAR',[])))")
+            for h in $HOLIDAYS; do
+              if [ "$h" = "$TODAY" ]; then
+                echo "is_trading_day=false" >> $GITHUB_OUTPUT
+                echo "节假日($TODAY)，非交易日"
+                exit 0
+              fi
+            done
+          fi
+
+          echo "is_trading_day=true" >> $GITHUB_OUTPUT
+          echo "交易日确认"
+
+  # 等待到北京时间14:00（仅schedule触发时等待）
+  wait-until-time:
+    needs: trading-day-check
+    if: needs.trading-day-check.outputs.is_trading_day == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait until 14:00 Beijing time
+        if: github.event_name == 'schedule'
+        run: |
+          echo "等待到北京时间14:00..."
+          while true; do
+            BJ_MINS=$((10#$(TZ=Asia/Shanghai date +%H) * 60 + 10#$(TZ=Asia/Shanghai date +%M)))
+            if [ $BJ_MINS -ge 840 ]; then
+              echo "已到北京时间14:00，开始执行"
+              break
+            fi
+            REMAINING=$((840 - BJ_MINS))
+            echo "当前北京时间 $(TZ=Asia/Shanghai date +%H:%M)，还需等待 ${REMAINING} 分钟..."
+            sleep 60
+          done
+
+  # 复盘（14:00执行）→ 优化参数 → 推送到data分支
+  review:
+    needs: [trading-day-check, wait-until-time]
+    if: needs.trading-day-check.outputs.is_trading_day == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait until 14:00 Beijing time
+        if: github.event_name == 'schedule'
+        run: |
+          while true; do
+            BJ_MINS=$((10#$(TZ=Asia/Shanghai date +%H) * 60 + 10#$(TZ=Asia/Shanghai date +%M)))
+            [ $BJ_MINS -ge 840 ] && break
+            sleep 60
+          done
+
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Pre-flight test
+        run: python test_suite.py
+        continue-on-error: true
+
+      - name: Restore data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin data 2>/dev/null || true
+          if git branch -r | grep -q "origin/data"; then
+            git checkout origin/data -- data/ 2>/dev/null || true
+          else
+            mkdir -p data/history data/reports data/config
+          fi
+
+      - name: Run review
+        env:
+          WECHAT_WEBHOOK_URL: ${{ secrets.WECHAT_WEBHOOK_URL }}
+          DATA_DIR: ./data
+        run: python review.py
+
+      - name: Save data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "Stock Bot"
+          git config user.email "627170042@qq.com"
+          git add -f data/ 2>/dev/null || true
+          if ! git diff --staged --quiet; then
+            git commit -m "review $(TZ=Asia/Shanghai date +%Y-%m-%d)"
+            git push origin HEAD:data --force
+            echo "Review data saved"
+          else
+            echo "No data changes"
+          fi
+
+  # 推荐（依赖review完成后执行）
+  recommend:
+    needs: [trading-day-check, wait-until-time, review]
+    if: needs.trading-day-check.outputs.is_trading_day == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Pre-flight test
+        run: python test_suite.py
+        continue-on-error: true
+
+      - name: Restore data (includes review-optimized params)
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          git fetch origin data 2>/dev/null || true
+          if git branch -r | grep -q "origin/data"; then
+            git checkout origin/data -- data/ 2>/dev/null || true
+          else
+            mkdir -p data/history data/reports data/config
+          fi
+          echo "✅ 数据已从data分支恢复（包含复盘优化参数）"
+
+      - name: Run recommendation
+        env:
+          WECHAT_WEBHOOK_URL: ${{ secrets.WECHAT_WEBHOOK_URL }}
+          DATA_DIR: ./data
+        run: python main.py
+
+      - name: Save data
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          git config user.name "Stock Bot"
+          git config user.email "627170042@qq.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git
+          git add -f data/ 2>/dev/null || true
+          if ! git diff --staged --quiet; then
+            git commit -m "recommend $(TZ=Asia/Shanghai date +%Y-%m-%d)"
+            git push origin HEAD:data --force
+            echo "Recommend data saved"
+          else
+            echo "No data changes"
+          fi
