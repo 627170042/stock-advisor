@@ -1,218 +1,343 @@
 {
   "version": 6,
-  "last_updated": "2026-05-29",
+  "last_updated": "2026-09-04",
   "params": {
-    "min_tech_score": 50,
-    "min_next_day_prob": 0.3,
-    "weight_potential": 0.5,
-    "weight_tech": 0.3535353535353536,
-    "weight_prob": 0.14141414141414135,
-    "max_recommend_day_change": 3.5,
-    "min_prob_threshold": 0.3,
-    "repeat_blacklist_days": 7,
-    "weight_trend": 0.35
+    "min_tech_score": 40,
+    "min_next_day_prob": 0.18,
+    "weight_trend": 0.4087941762966576,
+    "weight_tech": 0.46959805876555255,
+    "weight_prob": 0.12160776493778983,
+    "max_recommend_day_change": 7.0,
+    "min_prob_threshold": 0.12,
+    "repeat_blacklist_days": 10
   },
   "prob_calibration": {
-    "offset": -0.05,
-    "scale": 1.0,
-    "bucket_calibrations": {}
+    "offset": 0.0638,
+    "scale": 1.0
   },
   "meta": {
-    "total_reviews": 55,
-    "last_win_rate": 0.2545,
+    "total_reviews": 193,
+    "last_win_rate": 0.5648,
     "adjustment_history": [
       {
-        "date": "2026-05-13",
-        "win_rate": 0.2143,
-        "sample_size": 42,
+        "date": "2026-08-10",
+        "win_rate": 0.5669,
+        "sample_size": 157,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.41000000000000003,
-          "weight_tech": 0.35,
-          "weight_prob": 0.24,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.3898134280514171,
+          "weight_tech": 0.4632711426838057,
+          "weight_prob": 0.14691542926477705,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0645
       },
       {
-        "date": "2026-05-14",
-        "win_rate": 0.2045,
-        "sample_size": 44,
+        "date": "2026-08-11",
+        "win_rate": 0.5723,
+        "sample_size": 159,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.42000000000000004,
-          "weight_tech": 0.35,
-          "weight_prob": 0.22999999999999998,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.39090438420932394,
+          "weight_tech": 0.46363479473644137,
+          "weight_prob": 0.14546082105423472,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.07
       },
       {
-        "date": "2026-05-14",
-        "win_rate": 0.2045,
-        "sample_size": 44,
+        "date": "2026-08-12",
+        "win_rate": 0.5714,
+        "sample_size": 161,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.43000000000000005,
-          "weight_tech": 0.35,
-          "weight_prob": 0.21999999999999997,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.39198453882111284,
+          "weight_tech": 0.46399484627370435,
+          "weight_prob": 0.1440206149051829,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0697
       },
       {
-        "date": "2026-05-14",
-        "win_rate": 0.2045,
-        "sample_size": 44,
+        "date": "2026-08-13",
+        "win_rate": 0.5706,
+        "sample_size": 163,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.44000000000000006,
-          "weight_tech": 0.35,
-          "weight_prob": 0.20999999999999996,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.39305399883278497,
+          "weight_tech": 0.46435133294426173,
+          "weight_prob": 0.14259466822295336,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0682
       },
       {
-        "date": "2026-05-15",
-        "win_rate": 0.2045,
-        "sample_size": 44,
+        "date": "2026-08-14",
+        "win_rate": 0.5697,
+        "sample_size": 165,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.45000000000000007,
-          "weight_tech": 0.35,
-          "weight_prob": 0.19999999999999996,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.3941128701314703,
+          "weight_tech": 0.4647042900438235,
+          "weight_prob": 0.14118283982470628,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0673
       },
       {
-        "date": "2026-05-18",
-        "win_rate": 0.2174,
-        "sample_size": 46,
+        "date": "2026-08-17",
+        "win_rate": 0.5749,
+        "sample_size": 167,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.4600000000000001,
-          "weight_tech": 0.35,
-          "weight_prob": 0.18999999999999995,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.3951612575559111,
+          "weight_tech": 0.46505375251863706,
+          "weight_prob": 0.13978498992545174,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0721
       },
       {
-        "date": "2026-05-19",
-        "win_rate": 0.2292,
-        "sample_size": 48,
+        "date": "2026-08-18",
+        "win_rate": 0.574,
+        "sample_size": 169,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.4700000000000001,
-          "weight_tech": 0.35,
-          "weight_prob": 0.17999999999999994,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.39619926490684276,
+          "weight_tech": 0.4653997549689477,
+          "weight_prob": 0.13840098012420968,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0712
       },
       {
-        "date": "2026-05-19",
-        "win_rate": 0.2292,
-        "sample_size": 48,
+        "date": "2026-08-19",
+        "win_rate": 0.5673,
+        "sample_size": 171,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.4800000000000001,
-          "weight_tech": 0.35,
-          "weight_prob": 0.16999999999999993,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.39722699495727,
+          "weight_tech": 0.46574233165242335,
+          "weight_prob": 0.13703067339030658,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0657
       },
       {
-        "date": "2026-05-19",
-        "win_rate": 0.2292,
-        "sample_size": 48,
+        "date": "2026-08-20",
+        "win_rate": 0.5673,
+        "sample_size": 171,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.4900000000000001,
-          "weight_tech": 0.35,
-          "weight_prob": 0.15999999999999992,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.39824454946264354,
+          "weight_tech": 0.46608151648754786,
+          "weight_prob": 0.1356739340498085,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0657
       },
       {
-        "date": "2026-05-21",
-        "win_rate": 0.22,
-        "sample_size": 50,
+        "date": "2026-08-21",
+        "win_rate": 0.5665,
+        "sample_size": 173,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.5,
-          "weight_tech": 0.35000000000000003,
-          "weight_prob": 0.14999999999999994,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.3992520291709342,
+          "weight_tech": 0.4664173430569781,
+          "weight_prob": 0.1343306277720876,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0644
       },
       {
-        "date": "2026-05-22",
-        "win_rate": 0.2157,
-        "sample_size": 51,
+        "date": "2026-08-24",
+        "win_rate": 0.5714,
+        "sample_size": 175,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.5,
-          "weight_tech": 0.3535353535353536,
-          "weight_prob": 0.14141414141414135,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.40024953383260825,
+          "weight_tech": 0.4667498446108695,
+          "weight_prob": 0.1330006215565224,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0691
       },
       {
-        "date": "2026-05-29",
-        "win_rate": 0.2545,
-        "sample_size": 55,
+        "date": "2026-08-25",
+        "win_rate": 0.5706,
+        "sample_size": 177,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.5,
-          "weight_tech": 0.3535353535353536,
-          "weight_prob": 0.14141414141414135,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7,
-          "weight_trend": 0.35
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.40123716221050315,
+          "weight_tech": 0.4670790540701677,
+          "weight_prob": 0.13168378371932907,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0689
+      },
+      {
+        "date": "2026-08-26",
+        "win_rate": 0.5698,
+        "sample_size": 179,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4022150120896072,
+          "weight_tech": 0.4674050040298691,
+          "weight_prob": 0.13037998388052385,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0689
+      },
+      {
+        "date": "2026-08-27",
+        "win_rate": 0.5746,
+        "sample_size": 181,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4031831802867397,
+          "weight_tech": 0.46772772676224655,
+          "weight_prob": 0.12908909295101367,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0736
+      },
+      {
+        "date": "2026-08-28",
+        "win_rate": 0.5792,
+        "sample_size": 183,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4041417626601384,
+          "weight_tech": 0.46804725422004617,
+          "weight_prob": 0.12781098311981554,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0777
+      },
+      {
+        "date": "2026-08-31",
+        "win_rate": 0.573,
+        "sample_size": 185,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.40509085411894885,
+          "weight_tech": 0.4683636180396496,
+          "weight_prob": 0.1265455278414015,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.071
+      },
+      {
+        "date": "2026-09-01",
+        "win_rate": 0.5668,
+        "sample_size": 187,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4060305486326227,
+          "weight_tech": 0.46867684954420763,
+          "weight_prob": 0.1252926018231698,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0654
+      },
+      {
+        "date": "2026-09-02",
+        "win_rate": 0.5608,
+        "sample_size": 189,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4069609392402204,
+          "weight_tech": 0.46898697974674014,
+          "weight_prob": 0.1240520810130394,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0594
+      },
+      {
+        "date": "2026-09-03",
+        "win_rate": 0.5602,
+        "sample_size": 191,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.40788211805962415,
+          "weight_tech": 0.46929403935320807,
+          "weight_prob": 0.12282384258716772,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0587
+      },
+      {
+        "date": "2026-09-04",
+        "win_rate": 0.5648,
+        "sample_size": 193,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4087941762966576,
+          "weight_tech": 0.46959805876555255,
+          "weight_prob": 0.12160776493778983,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0638
       }
     ]
   }

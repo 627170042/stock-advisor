@@ -1,0 +1,66 @@
+{
+  "date": "2026-09-04",
+  "market_env": {
+    "level": "neutral",
+    "score": 50,
+    "signal": "谨慎选股"
+  },
+  "picks": [
+    {
+      "symbol": "sz300133",
+      "name": "华策影视",
+      "price": 7.68,
+      "changepercent": 3.784,
+      "trend_score": 100,
+      "tech_score": 59,
+      "total_score": 74.46908676452362,
+      "next_day_prob": 0.4838,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "股价贴近MA5(有支撑)",
+        "放量站上MA20",
+        "量价背离(风险)",
+        "RSI=54(动量加速区)",
+        "KDJ金叉(趋势确认)",
+        "MACD零轴上方(趋势加速)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "",
+        "sector_name": "未知",
+        "heat_score": 50,
+        "heat_level": "warm",
+        "sector_change": 0,
+        "up_ratio": 0.5
+      }
+    },
+    {
+      "symbol": "sh688318",
+      "name": "财富趋势",
+      "price": 88.89,
+      "changepercent": 4.564,
+      "trend_score": 100,
+      "tech_score": 59,
+      "total_score": 73.73944017489688,
+      "next_day_prob": 0.42379999999999995,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "股价贴近MA5(有支撑)",
+        "MA20上行(中期趋势向好)",
+        "量价尚可",
+        "RSI=58(动量加速区)",
+        "MACD零轴上方(趋势加速)"
+      ],
+      "sector_heat": {
+        "sector_code": "",
+        "sector_name": "未知",
+        "heat_score": 50,
+        "heat_level": "warm",
+        "sector_change": 0,
+        "up_ratio": 0.5
+      }
+    }
+  ]
+}
