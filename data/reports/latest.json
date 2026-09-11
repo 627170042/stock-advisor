@@ -1,0 +1,74 @@
+{
+  "date": "2026-09-11",
+  "market_env": {
+    "level": "neutral",
+    "score": 33,
+    "signal": "谨慎选股"
+  },
+  "picks": [
+    {
+      "symbol": "sz002651",
+      "name": "利君股份",
+      "price": 9.22,
+      "changepercent": 2.444,
+      "trend_score": 97,
+      "tech_score": 72,
+      "total_score": 79.82202195786135,
+      "next_day_prob": 0.5032,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "股价贴近MA5(有支撑)",
+        "MA20上行(中期趋势向好)",
+        "放量站上MA20",
+        "温和放量上涨(趋势延续)",
+        "放量长阳(涨2.4%量比1.7)",
+        "量价尚可",
+        "RSI=71(偏强)",
+        "MACD零轴上方(趋势加速)",
+        "冷门板块上涨(可能反弹)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_jxhy",
+        "sector_name": "机械行业",
+        "heat_score": 8,
+        "heat_level": "cold",
+        "sector_change": -0.57334914986161,
+        "up_ratio": 0.4
+      }
+    },
+    {
+      "symbol": "sz002913",
+      "name": "奥士康",
+      "price": 73.52,
+      "changepercent": 3.564,
+      "trend_score": 100,
+      "tech_score": 63,
+      "total_score": 76.12778826375222,
+      "next_day_prob": 0.4431999999999999,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "MA20上行(中期趋势向好)",
+        "放量站上MA20",
+        "放量长阳(涨3.6%量比1.5)",
+        "突破布林上轨(强势)",
+        "量价尚可",
+        "RSI=68(偏强)",
+        "KDJ超买(谨慎)",
+        "MACD零轴上方(趋势加速)",
+        "冷门板块上涨(可能反弹)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_dzqj",
+        "sector_name": "电子器件",
+        "heat_score": 8,
+        "heat_level": "cold",
+        "sector_change": -0.57438041616184,
+        "up_ratio": 0.4
+      }
+    }
+  ]
+}
