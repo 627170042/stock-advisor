@@ -1,0 +1,72 @@
+{
+  "date": "2026-09-25",
+  "market_env": {
+    "level": "neutral",
+    "score": 30,
+    "signal": "谨慎选股"
+  },
+  "picks": [
+    {
+      "symbol": "sz300676",
+      "name": "华大基因",
+      "price": 45.12,
+      "changepercent": 2.499,
+      "trend_score": 100,
+      "tech_score": 75,
+      "total_score": 82.42920816408719,
+      "next_day_prob": 0.45339999999999997,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "MA20上行(中期趋势向好)",
+        "放量突破20日高点(★强信号)",
+        "放量站上MA20",
+        "放量长阳(涨2.5%量比1.5)",
+        "突破布林上轨(强势)",
+        "量价健康(涨放量跌缩量)",
+        "RSI=85(超买风险)",
+        "KDJ超买(谨慎)",
+        "MACD零轴上方(趋势加速)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "",
+        "sector_name": "未知",
+        "heat_score": 50,
+        "heat_level": "warm",
+        "sector_change": 0,
+        "up_ratio": 0.5
+      }
+    },
+    {
+      "symbol": "sz301297",
+      "name": "富乐德",
+      "price": 50.72,
+      "changepercent": 2.073,
+      "trend_score": 100,
+      "tech_score": 71,
+      "total_score": 80.32446137962296,
+      "next_day_prob": 0.43340000000000006,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "MA20上行(中期趋势向好)",
+        "放量突破20日高点(★强信号)",
+        "放量站上MA20",
+        "温和放量上涨(趋势延续)",
+        "放量长阳(涨2.1%量比1.6)",
+        "RSI=81(超买风险)",
+        "MACD零轴上方(趋势加速)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "",
+        "sector_name": "未知",
+        "heat_score": 50,
+        "heat_level": "warm",
+        "sector_change": 0,
+        "up_ratio": 0.5
+      }
+    }
+  ]
+}
