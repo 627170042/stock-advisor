@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-16",
+  "market_env": {
+    "level": "neutral",
+    "score": 55,
+    "signal": "谨慎选股"
+  },
+  "picks": [
+    {
+      "symbol": "sz300199",
+      "name": "翰宇药业",
+      "price": 25.31,
+      "changepercent": 3.096,
+      "trend_score": 100,
+      "tech_score": 59,
+      "total_score": 75.15174879316189,
+      "next_day_prob": 0.4482,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "股价贴近MA5(有支撑)",
+        "MA20上行(中期趋势向好)",
+        "量价尚可",
+        "RSI=56(动量加速区)",
+        "MACD零轴上方(趋势加速)"
+      ],
+      "sector_heat": {
+        "sector_code": "",
+        "sector_name": "未知",
+        "heat_score": 50,
+        "heat_level": "warm",
+        "sector_change": 0,
+        "up_ratio": 0.5
+      }
+    },
+    {
+      "symbol": "sh600072",
+      "name": "中船科技",
+      "price": 9.79,
+      "changepercent": 2.192,
+      "trend_score": 100,
+      "tech_score": 55,
+      "total_score": 73.55516262212602,
+      "next_day_prob": 0.47819999999999996,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "股价贴近MA5(有支撑)",
+        "MA20上行(中期趋势向好)",
+        "放量站上MA20",
+        "量价背离(风险)",
+        "RSI=66(偏强)",
+        "KDJ金叉(趋势确认)",
+        "MACD零轴上方(趋势加速)",
+        "冷门板块上涨(可能反弹)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_jzjc",
+        "sector_name": "建筑建材",
+        "heat_score": 38,
+        "heat_level": "cold",
+        "sector_change": 1.3758494511239,
+        "up_ratio": 0.6
+      }
+    }
+  ]
+}
