@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-23",
+  "market_env": {
+    "level": "bull",
+    "score": 65,
+    "signal": "适合选股"
+  },
+  "picks": [
+    {
+      "symbol": "sh603728",
+      "name": "鸣志电器",
+      "price": 56.1,
+      "changepercent": 2.992,
+      "trend_score": 90,
+      "tech_score": 52,
+      "total_score": 67.94235542417407,
+      "next_day_prob": 0.4813,
+      "signals": [
+        "放量突破20日高点(★强信号)",
+        "放量站上MA20",
+        "放量长阳(涨3.0%量比3.1)",
+        "量价健康(涨放量跌缩量)",
+        "RSI=58(动量加速区)",
+        "MACD底部金叉(趋势转强)",
+        "冷门板块上涨(可能反弹)",
+        "大盘强势(环境友好)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_fdsb",
+        "sector_name": "发电设备",
+        "heat_score": 8,
+        "heat_level": "cold",
+        "sector_change": -0.24721550280443,
+        "up_ratio": 0.4
+      }
+    },
+    {
+      "symbol": "sh688099",
+      "name": "晶晨股份",
+      "price": 96.93,
+      "changepercent": 2.658,
+      "trend_score": 90,
+      "tech_score": 37,
+      "total_score": 59.84916074090323,
+      "next_day_prob": 0.38130000000000003,
+      "signals": [
+        "MA20上行(中期趋势向好)",
+        "量价健康(涨放量跌缩量)",
+        "RSI=56(动量加速区)",
+        "KDJ低位金叉(趋势启动)",
+        "MACD零轴上方(趋势加速)",
+        "冷门板块上涨(可能反弹)",
+        "大盘强势(环境友好)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_dzqj",
+        "sector_name": "电子器件",
+        "heat_score": 8,
+        "heat_level": "cold",
+        "sector_change": -0.53828370311583,
+        "up_ratio": 0.4
+      }
+    }
+  ]
+}
