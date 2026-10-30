@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-30",
+  "market_env": {
+    "level": "neutral",
+    "score": 37,
+    "signal": "谨慎选股"
+  },
+  "picks": [
+    {
+      "symbol": "sz300428",
+      "name": "立中集团",
+      "price": 21.66,
+      "changepercent": 4.185,
+      "trend_score": 100,
+      "tech_score": 53,
+      "total_score": 72.52276194728276,
+      "next_day_prob": 0.45819999999999994,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "放量站上MA20",
+        "突破布林上轨(强势)",
+        "量价健康(涨放量跌缩量)",
+        "RSI=64(动量加速区)",
+        "MACD零轴上方(趋势加速)",
+        "冷门板块上涨(可能反弹)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_qczz",
+        "sector_name": "汽车制造",
+        "heat_score": 0,
+        "heat_level": "cold",
+        "sector_change": -2.147591225448,
+        "up_ratio": 0.4
+      }
+    },
+    {
+      "symbol": "sh688615",
+      "name": "合合信息",
+      "price": 93.52,
+      "changepercent": 2.141,
+      "trend_score": 100,
+      "tech_score": 50,
+      "total_score": 71.007719663412,
+      "next_day_prob": 0.4482,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "MA20上行(中期趋势向好)",
+        "量价健康(涨放量跌缩量)",
+        "RSI=61(动量加速区)",
+        "MACD零轴上方(趋势加速)"
+      ],
+      "sector_heat": {
+        "sector_code": "",
+        "sector_name": "未知",
+        "heat_score": 50,
+        "heat_level": "warm",
+        "sector_change": 0,
+        "up_ratio": 0.5
+      }
+    }
+  ]
+}
