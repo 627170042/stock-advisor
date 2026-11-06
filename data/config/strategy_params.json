@@ -1,218 +1,343 @@
 {
   "version": 6,
-  "last_updated": "2026-05-29",
+  "last_updated": "2026-11-06",
   "params": {
-    "min_tech_score": 50,
-    "min_next_day_prob": 0.3,
-    "weight_potential": 0.5,
-    "weight_tech": 0.3535353535353536,
-    "weight_prob": 0.14141414141414135,
-    "max_recommend_day_change": 3.5,
-    "min_prob_threshold": 0.3,
-    "repeat_blacklist_days": 7,
-    "weight_trend": 0.35
+    "min_tech_score": 40,
+    "min_next_day_prob": 0.18,
+    "weight_trend": 0.4305513353456949,
+    "weight_tech": 0.47054624193355343,
+    "weight_prob": 0.1,
+    "max_recommend_day_change": 7.0,
+    "min_prob_threshold": 0.12,
+    "repeat_blacklist_days": 10
   },
   "prob_calibration": {
-    "offset": -0.05,
-    "scale": 1.0,
-    "bucket_calibrations": {}
+    "offset": 0.0576,
+    "scale": 1.0
   },
   "meta": {
-    "total_reviews": 55,
-    "last_win_rate": 0.2545,
+    "total_reviews": 269,
+    "last_win_rate": 0.5502,
     "adjustment_history": [
       {
-        "date": "2026-05-13",
-        "win_rate": 0.2143,
-        "sample_size": 42,
+        "date": "2026-10-12",
+        "win_rate": 0.5622,
+        "sample_size": 233,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.41000000000000003,
-          "weight_tech": 0.35,
-          "weight_prob": 0.24,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4258507402000657,
+          "weight_tech": 0.4751723865785803,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0649
       },
       {
-        "date": "2026-05-14",
-        "win_rate": 0.2045,
-        "sample_size": 44,
+        "date": "2026-10-13",
+        "win_rate": 0.566,
+        "sample_size": 235,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.42000000000000004,
-          "weight_tech": 0.35,
-          "weight_prob": 0.22999999999999998,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4261531994553438,
+          "weight_tech": 0.47493709477103735,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0689
       },
       {
-        "date": "2026-05-14",
-        "win_rate": 0.2045,
-        "sample_size": 44,
+        "date": "2026-10-14",
+        "win_rate": 0.5654,
+        "sample_size": 237,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.43000000000000005,
-          "weight_tech": 0.35,
-          "weight_prob": 0.21999999999999997,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4264240314810196,
+          "weight_tech": 0.4746728333874999,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0687
       },
       {
-        "date": "2026-05-14",
-        "win_rate": 0.2045,
-        "sample_size": 44,
+        "date": "2026-10-15",
+        "win_rate": 0.569,
+        "sample_size": 239,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.44000000000000006,
-          "weight_tech": 0.35,
-          "weight_prob": 0.20999999999999996,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.42668911997578085,
+          "weight_tech": 0.474408387617615,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.073
       },
       {
-        "date": "2026-05-15",
-        "win_rate": 0.2045,
-        "sample_size": 44,
+        "date": "2026-10-16",
+        "win_rate": 0.5643,
+        "sample_size": 241,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.45000000000000007,
-          "weight_tech": 0.35,
-          "weight_prob": 0.19999999999999996,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4269510277038294,
+          "weight_tech": 0.474146542758965,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0682
       },
       {
-        "date": "2026-05-18",
-        "win_rate": 0.2174,
-        "sample_size": 46,
+        "date": "2026-10-19",
+        "win_rate": 0.5679,
+        "sample_size": 243,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.4600000000000001,
-          "weight_tech": 0.35,
-          "weight_prob": 0.18999999999999995,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4272100342463675,
+          "weight_tech": 0.4738875423661165,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0721
       },
       {
-        "date": "2026-05-19",
-        "win_rate": 0.2292,
-        "sample_size": 48,
+        "date": "2026-10-20",
+        "win_rate": 0.5633,
+        "sample_size": 245,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.4700000000000001,
-          "weight_tech": 0.35,
-          "weight_prob": 0.17999999999999994,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.42746619539373837,
+          "weight_tech": 0.47363138182028913,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0678
       },
       {
-        "date": "2026-05-19",
-        "win_rate": 0.2292,
-        "sample_size": 48,
+        "date": "2026-10-21",
+        "win_rate": 0.5587,
+        "sample_size": 247,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.4800000000000001,
-          "weight_tech": 0.35,
-          "weight_prob": 0.16999999999999993,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4277195447202566,
+          "weight_tech": 0.47337803255261207,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.066
       },
       {
-        "date": "2026-05-19",
-        "win_rate": 0.2292,
-        "sample_size": 48,
+        "date": "2026-10-22",
+        "win_rate": 0.5542,
+        "sample_size": 249,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.4900000000000001,
-          "weight_tech": 0.35,
-          "weight_prob": 0.15999999999999992,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4279701133172401,
+          "weight_tech": 0.47312746396138416,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0614
       },
       {
-        "date": "2026-05-21",
-        "win_rate": 0.22,
-        "sample_size": 50,
+        "date": "2026-10-23",
+        "win_rate": 0.5538,
+        "sample_size": 251,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.5,
-          "weight_tech": 0.35000000000000003,
-          "weight_prob": 0.14999999999999994,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.42821793172779815,
+          "weight_tech": 0.4728796455513891,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0613
       },
       {
-        "date": "2026-05-22",
-        "win_rate": 0.2157,
-        "sample_size": 51,
+        "date": "2026-10-26",
+        "win_rate": 0.5573,
+        "sample_size": 253,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.5,
-          "weight_tech": 0.3535353535353536,
-          "weight_prob": 0.14141414141414135,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4284630301395498,
+          "weight_tech": 0.4726345471396927,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0654
       },
       {
-        "date": "2026-05-29",
-        "win_rate": 0.2545,
-        "sample_size": 55,
+        "date": "2026-10-27",
+        "win_rate": 0.5569,
+        "sample_size": 255,
         "params": {
-          "min_tech_score": 50,
-          "min_next_day_prob": 0.3,
-          "weight_potential": 0.5,
-          "weight_tech": 0.3535353535353536,
-          "weight_prob": 0.14141414141414135,
-          "max_recommend_day_change": 3.5,
-          "min_prob_threshold": 0.3,
-          "repeat_blacklist_days": 7,
-          "weight_trend": 0.35
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4287054384067988,
+          "weight_tech": 0.472392138872449,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
         },
-        "prob_offset": -0.05
+        "prob_offset": 0.0645
+      },
+      {
+        "date": "2026-10-28",
+        "win_rate": 0.5603,
+        "sample_size": 257,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4289451860559812,
+          "weight_tech": 0.47215239122326713,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0685
+      },
+      {
+        "date": "2026-10-29",
+        "win_rate": 0.5598,
+        "sample_size": 259,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.42918230228943843,
+          "weight_tech": 0.47191527498981,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0682
+      },
+      {
+        "date": "2026-10-30",
+        "win_rate": 0.5598,
+        "sample_size": 259,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.42941681598899173,
+          "weight_tech": 0.4716807612902566,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0682
+      },
+      {
+        "date": "2026-11-02",
+        "win_rate": 0.5594,
+        "sample_size": 261,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4296487557194621,
+          "weight_tech": 0.47144882155978635,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.068
+      },
+      {
+        "date": "2026-11-03",
+        "win_rate": 0.5551,
+        "sample_size": 263,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4298781497321492,
+          "weight_tech": 0.47121942754709917,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0638
+      },
+      {
+        "date": "2026-11-04",
+        "win_rate": 0.5509,
+        "sample_size": 265,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4301050259682731,
+          "weight_tech": 0.47099255131097517,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0591
+      },
+      {
+        "date": "2026-11-05",
+        "win_rate": 0.5543,
+        "sample_size": 267,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4303294120623774,
+          "weight_tech": 0.47076816521687104,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0621
+      },
+      {
+        "date": "2026-11-06",
+        "win_rate": 0.5502,
+        "sample_size": 269,
+        "params": {
+          "min_tech_score": 40,
+          "min_next_day_prob": 0.18,
+          "weight_trend": 0.4305513353456949,
+          "weight_tech": 0.47054624193355343,
+          "weight_prob": 0.1,
+          "max_recommend_day_change": 7.0,
+          "min_prob_threshold": 0.12,
+          "repeat_blacklist_days": 10
+        },
+        "prob_offset": 0.0576
       }
     ]
   }

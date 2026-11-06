@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-05",
+  "market_env": {
+    "level": "neutral",
+    "score": 58,
+    "signal": "谨慎选股"
+  },
+  "picks": [
+    {
+      "symbol": "sz002812",
+      "name": "恩捷股份",
+      "price": 52.88,
+      "changepercent": 3.707,
+      "trend_score": 100,
+      "tech_score": 78,
+      "total_score": 85.87385809315367,
+      "next_day_prob": 0.6121000000000001,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "MA20上行(中期趋势向好)",
+        "放量突破20日高点(★强信号)",
+        "放量站上MA20",
+        "温和放量上涨(趋势延续)",
+        "突破布林上轨(强势)",
+        "量价健康(涨放量跌缩量)",
+        "RSI=56(动量加速区)",
+        "KDJ超买(谨慎)",
+        "MACD零轴上方(趋势加速)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_ysjs",
+        "sector_name": "有色金属",
+        "heat_score": 65,
+        "heat_level": "warm",
+        "sector_change": 2.1278745132613,
+        "up_ratio": 0.6
+      }
+    },
+    {
+      "symbol": "sz002241",
+      "name": "歌尔股份",
+      "price": 24.72,
+      "changepercent": 4.613,
+      "trend_score": 90,
+      "tech_score": 50,
+      "total_score": 66.98905534645752,
+      "next_day_prob": 0.4721,
+      "signals": [
+        "放量站上MA20",
+        "温和放量上涨(趋势延续)",
+        "放量长阳(涨4.6%量比1.7)",
+        "量价健康(涨放量跌缩量)",
+        "RSI=71(偏强)",
+        "MACD零轴上方(趋势加速)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_dzqj",
+        "sector_name": "电子器件",
+        "heat_score": 48,
+        "heat_level": "warm",
+        "sector_change": 1.6873059467842,
+        "up_ratio": 0.6
+      }
+    }
+  ]
+}
