@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-13",
+  "market_env": {
+    "level": "neutral",
+    "score": 37,
+    "signal": "谨慎选股"
+  },
+  "picks": [
+    {
+      "symbol": "sh600829",
+      "name": "人民同泰",
+      "price": 10.06,
+      "changepercent": 2.863,
+      "trend_score": 97,
+      "tech_score": 59,
+      "total_score": 74.29650498385156,
+      "next_day_prob": 0.473,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "放量站上MA20",
+        "放量长阳(涨2.9%量比1.8)",
+        "突破布林上轨(强势)",
+        "RSI=67(偏强)",
+        "KDJ金叉(趋势确认)",
+        "MACD零轴上方(趋势加速)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "",
+        "sector_name": "未知",
+        "heat_score": 50,
+        "heat_level": "warm",
+        "sector_change": 0,
+        "up_ratio": 0.5
+      }
+    },
+    {
+      "symbol": "sz002100",
+      "name": "天康生物",
+      "price": 8.6,
+      "changepercent": 2.994,
+      "trend_score": 100,
+      "tech_score": 54,
+      "total_score": 72.04401666048182,
+      "next_day_prob": 0.3529999999999999,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "股价贴近MA5(有支撑)",
+        "MA20上行(中期趋势向好)",
+        "量价尚可",
+        "RSI=58(动量加速区)",
+        "MACD零轴上方(趋势加速)",
+        "冷门板块上涨(可能反弹)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_nlmy",
+        "sector_name": "农林牧渔",
+        "heat_score": 3,
+        "heat_level": "cold",
+        "sector_change": -1.0545954438335,
+        "up_ratio": 0.4
+      }
+    }
+  ]
+}
