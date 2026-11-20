@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-19",
+  "market_env": {
+    "level": "neutral",
+    "score": 45,
+    "signal": "谨慎选股"
+  },
+  "picks": [
+    {
+      "symbol": "sh600863",
+      "name": "华能蒙电",
+      "price": 5.66,
+      "changepercent": 4.815,
+      "trend_score": 100,
+      "tech_score": 70,
+      "total_score": 81.07609587396966,
+      "next_day_prob": 0.5026,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "股价贴近MA5(有支撑)",
+        "MA20上行(中期趋势向好)",
+        "放量站上MA20",
+        "放量长阳(涨4.8%量比1.6)",
+        "量价尚可",
+        "RSI=58(动量加速区)",
+        "MACD零轴上方(趋势加速)",
+        "冷门板块上涨(可能反弹)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_dlhy",
+        "sector_name": "电力行业",
+        "heat_score": 8,
+        "heat_level": "cold",
+        "sector_change": -0.9540911254381,
+        "up_ratio": 0.4
+      }
+    },
+    {
+      "symbol": "sh603706",
+      "name": "东方环宇",
+      "price": 21.23,
+      "changepercent": 4.069,
+      "trend_score": 94,
+      "tech_score": 61,
+      "total_score": 74.26354422489867,
+      "next_day_prob": 0.5025999999999999,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "MA20上行(中期趋势向好)",
+        "放量站上MA20",
+        "量价健康(涨放量跌缩量)",
+        "RSI=59(动量加速区)",
+        "MACD零轴上方(趋势加速)",
+        "冷门板块上涨(可能反弹)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_gsgq",
+        "sector_name": "供水供气",
+        "heat_score": 3,
+        "heat_level": "cold",
+        "sector_change": -1.589089831011,
+        "up_ratio": 0.4
+      }
+    }
+  ]
+}
