@@ -1,0 +1,76 @@
+{
+  "date": "2026-11-27",
+  "market_env": {
+    "level": "bull",
+    "score": 85,
+    "signal": "适合选股"
+  },
+  "picks": [
+    {
+      "symbol": "sz002226",
+      "name": "江南化工",
+      "price": 5.89,
+      "changepercent": 3.333,
+      "trend_score": 100,
+      "tech_score": 96,
+      "total_score": 94.79021083024243,
+      "next_day_prob": 0.6589,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "长线趋势确认(MA60多头)",
+        "MA20上行(中期趋势向好)",
+        "放量突破20日高点(★强信号)",
+        "放量站上MA20",
+        "温和放量上涨(趋势延续)",
+        "放量长阳(涨3.3%量比2.9)",
+        "突破布林上轨(强势)",
+        "量价健康(涨放量跌缩量)",
+        "RSI=67(偏强)",
+        "KDJ超买(谨慎)",
+        "MACD零轴上方(趋势加速)",
+        "热门板块(化工行业)",
+        "大盘强势(环境友好)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_hghy",
+        "sector_name": "化工行业",
+        "heat_score": 75,
+        "heat_level": "hot",
+        "sector_change": 7.7331075942251,
+        "up_ratio": 0.6
+      }
+    },
+    {
+      "symbol": "sh600185",
+      "name": "珠免集团",
+      "price": 4.89,
+      "changepercent": 3.822,
+      "trend_score": 97,
+      "tech_score": 68,
+      "total_score": 79.46717144715609,
+      "next_day_prob": 0.5589,
+      "signals": [
+        "均线多头排列(趋势向上)",
+        "放量突破20日高点(★强信号)",
+        "放量站上MA20",
+        "放量长阳(涨3.8%量比9.7)",
+        "突破布林上轨(强势)",
+        "量价健康(涨放量跌缩量)",
+        "RSI=68(偏强)",
+        "KDJ超买(谨慎)",
+        "MACD底部金叉(趋势转强)",
+        "大盘强势(环境友好)",
+        "趋势确认上涨(加分)"
+      ],
+      "sector_heat": {
+        "sector_code": "new_sybh",
+        "sector_name": "商业百货",
+        "heat_score": 68,
+        "heat_level": "warm",
+        "sector_change": 3.6132797809769,
+        "up_ratio": 0.6
+      }
+    }
+  ]
+}
